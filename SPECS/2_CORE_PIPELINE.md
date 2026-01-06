@@ -23,6 +23,7 @@ The Core Pipeline provides reusable services for voice memo processing: transcri
 **Purpose:** Detect new voice memo files and initiate processing
 
 **Behavior:**
+
 - Poll directory every `POLL_INTERVAL_MINUTES` (default: 5)
 - List all files in `VOICE_MEMOS_DIR`
 - Filter for audio files (.m4a, .wav)
@@ -30,6 +31,7 @@ The Core Pipeline provides reusable services for voice memo processing: transcri
 - For new files: mark as "processing" and initiate pipeline
 
 **Implementation:**
+
 ```typescript
 class FileWatcher {
   async watch(): Promise<string[]> {
@@ -42,10 +44,12 @@ class FileWatcher {
 ```
 
 **Input:**
+
 - Directory path (from config)
 - State service (processed file list)
 
 **Output:**
+
 - Array of new file paths to process
 
 ---
@@ -55,12 +59,14 @@ class FileWatcher {
 **Purpose:** Convert audio files to text using Gemini API
 
 **Behavior:**
+
 - Upload audio file to Gemini
 - Request transcription
 - Handle errors and retries
 - Return raw text transcript
 
 **API Call:**
+
 ```typescript
 // Gemini API (pseudocode)
 POST https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={API_KEY}
@@ -77,23 +83,24 @@ POST https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateCont
 ```
 
 **Input:**
+
 - File path to audio file
 - Gemini API key
 
 **Output:**
+
 ```typescript
 interface TranscriptionResult {
-  text: string;           // Raw transcript
+  text: string; // Raw transcript
   success: boolean;
   error?: string;
 }
 ```
 
 **Error Handling:**
+
 - Transient errors: Retry 3 times (1s, 5s, 30s backoff)
 - Permanent errors: Move to `failed/`, log error
-
-
 
 ---
 
@@ -102,6 +109,7 @@ interface TranscriptionResult {
 **Purpose:** Use AI to categorize transcript and extract structured data
 
 **Behavior:**
+
 - Fetch current Notion schema (priorities, categories)
 - Build prompt with dynamic enums
 - Send transcript + prompt to AI
@@ -109,6 +117,7 @@ interface TranscriptionResult {
 - Validate JSON structure
 
 **Prompt Template:**
+
 ```
 Given this transcript, extract all actionable items and notes.
 
@@ -148,20 +157,22 @@ Return valid JSON only, no markdown:
 ```
 
 **Input:**
+
 - Transcript text
 - Notion schema (priorities, categories)
 - Gemini API key
 
 **Output:**
+
 ```typescript
 interface OrganizationResult {
   items: Array<{
-    type: "TODO" | "NOTE";
+    type: 'TODO' | 'NOTE';
     title: string;
-    description?: string;    // For TODOs
-    content?: string;         // For notes
-    priority: "asap" | "soon" | "eventually";
-    category?: string;        // For notes
+    description?: string; // For TODOs
+    content?: string; // For notes
+    priority: 'asap' | 'soon' | 'eventually';
+    category?: string; // For notes
   }>;
   success: boolean;
   error?: string;
@@ -169,11 +180,10 @@ interface OrganizationResult {
 ```
 
 **Error Handling:**
+
 - Invalid JSON: Retry with improved prompt
 - Invalid enum values: Log error, will fail validation later
 - API errors: Retry 3 times
-
-
 
 ---
 
@@ -182,6 +192,7 @@ interface OrganizationResult {
 **Purpose:** Validate AI output and create pages in Notion
 
 **Behavior:**
+
 - Validate each item against Notion schema
 - Ensure priority exists in Notion TODO database
 - Ensure category exists in Notion Notes database
@@ -189,14 +200,15 @@ interface OrganizationResult {
 - Track successful/failed syncs
 
 **Validation:**
+
 ```typescript
 function validateItem(item: OrganizationItem, schema: NotionSchema): boolean {
-  if (item.type === "TODO") {
+  if (item.type === 'TODO') {
     // Check if priority exists in schema
     if (!schema.priorities.includes(item.priority)) {
       return false;
     }
-  } else if (item.type === "NOTE") {
+  } else if (item.type === 'NOTE') {
     // Check if category exists in schema
     if (!schema.categories.includes(item.category)) {
       return false;
@@ -209,6 +221,7 @@ function validateItem(item: OrganizationItem, schema: NotionSchema): boolean {
 **API Calls:**
 
 **Create TODO:**
+
 ```typescript
 POST https://api.notion.com/v1/pages
 {
@@ -237,6 +250,7 @@ POST https://api.notion.com/v1/pages
 ```
 
 **Create Note:**
+
 ```typescript
 POST https://api.notion.com/v1/pages
 {
@@ -262,12 +276,14 @@ POST https://api.notion.com/v1/pages
 ```
 
 **Input:**
+
 - Organized items from AI
 - Notion database IDs
 - Notion schema (for validation)
 - Source filename
 
 **Output:**
+
 ```typescript
 interface SyncResult {
   itemsCreated: number;
@@ -278,6 +294,7 @@ interface SyncResult {
 ```
 
 **Error Handling:**
+
 - Invalid enum value: Skip item, log error (user can fix in Notion and restart)
 - API rate limit: Wait and retry
 - Network error: Retry 3 times
@@ -339,9 +356,7 @@ START LOOP (every 5 minutes)
     "voice_memo_001.m4a": "completed",
     "voice_memo_002.m4a": "completed"
   },
-  "failedFiles": [
-    "voice_memo_003.m4a"
-  ]
+  "failedFiles": ["voice_memo_003.m4a"]
 }
 ```
 
@@ -373,14 +388,17 @@ interface StateService {
 ### Transcription Errors
 
 **Error:** Network timeout
+
 - **Action:** Retry 3 times (1s, 5s, 30s)
 - **Recovery:** Move to `failed/` if all retries fail
 
 **Error:** Invalid audio format
+
 - **Action:** Log error, move to `failed/`
 - **Message:** "Unsupported audio format: {format}"
 
 **Error:** Transcription API rate limit
+
 - **Action:** Wait 60 seconds, retry
 - **Recovery:** If retry fails, move to `failed/`
 
@@ -389,10 +407,12 @@ interface StateService {
 ### Organization Errors
 
 **Error:** Invalid JSON response from AI
+
 - **Action:** Retry with improved prompt: "Return valid JSON only"
 - **Recovery:** Move to `failed/` after 3 retries
 
 **Error:** AI returns invalid enum value (not in Notion schema)
+
 - **Action:** Log warning: "Invalid priority 'urgent', not in schema"
 - **Recovery:** Skip item, continue with other items (user can update Notion and retry later)
 
@@ -401,14 +421,17 @@ interface StateService {
 ### Notion Sync Errors
 
 **Error:** Validation failed (invalid enum)
+
 - **Action:** Skip item, log error
 - **Recovery:** User updates Notion schema, manually restarts processing
 
 **Error:** API rate limit
+
 - **Action:** Wait 60 seconds, retry
 - **Recovery:** Continue with other items if partial success
 
 **Error:** Database not found
+
 - **Action:** Log critical error, stop processing
 - **Recovery:** User must re-run auto-setup
 
@@ -417,10 +440,12 @@ interface StateService {
 ### File Watcher Errors
 
 **Error:** Directory not found
+
 - **Action:** Log error, stop processing
 - **Recovery:** User must update `VOICE_MEMOS_DIR` in `.env`
 
 **Error:** Permission denied
+
 - **Action:** Log error, stop processing
 - **Recovery:** User must fix file permissions
 
@@ -431,10 +456,12 @@ interface StateService {
 ### Uses From Other Services
 
 **From Config Service:**
+
 - Environment variables (`GEMINI_API_KEY`, `NOTION_API_KEY`, etc.)
 - Notion schema (`priorities`, `categories`, database IDs)
 
 **From Utilities:**
+
 - Logger service (log all operations and errors)
 - Archive service (copy processed files)
 - State service (track progress)
@@ -442,6 +469,7 @@ interface StateService {
 ### Provides To Main Loop
 
 **Main entry point:**
+
 ```typescript
 async function main() {
   const config = await ConfigService.load();
@@ -468,16 +496,19 @@ async function main() {
 ## Testing Considerations
 
 ### Unit Tests
+
 - File watcher filtering logic
 - Transcript parsing
 - JSON validation
 - Schema validation
 
 ### Integration Tests
+
 - Full pipeline with mock APIs
 - Error handling paths
 
 ### Manual Testing
+
 - Record voice memo, wait 5 min, check Notion
 - Test multiple items in one voice memo
 - Test failure scenarios (corrupted file, network issues)

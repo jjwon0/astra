@@ -63,8 +63,8 @@ The service fetches and caches this schema:
 interface NotionSchema {
   todoDatabaseId: string;
   notesDatabaseId: string;
-  priorities: string[];      // ["asap", "soon", "eventually"]
-  categories: string[];      // ["project idea", "feature idea", ...]
+  priorities: string[]; // ["asap", "soon", "eventually"]
+  categories: string[]; // ["project idea", "feature idea", ...]
 }
 ```
 
@@ -84,6 +84,7 @@ interface NotionSchema {
    - **No runtime refresh needed** (manually restart to pick up Notion changes)
 
 3. **API Calls:**
+
    ```typescript
    // Get database schema
    GET https://api.notion.com/v1/databases/{database_id}
@@ -113,6 +114,7 @@ interface NotionSchema {
 **Trigger:** If database IDs are empty or invalid in environment
 
 **Steps:**
+
 1. Connect to Notion API
 2. Create TODO database:
    ```typescript
@@ -176,14 +178,17 @@ interface NotionSchema {
 ### Handling Existing Databases
 
 **Scenario 1: Both databases exist and have IDs**
+
 - Fetch schema from existing databases
 - Use existing options (don't overwrite)
 
 **Scenario 2: One database missing**
+
 - Create missing database
 - Fetch schema from existing + new database
 
 **Scenario 3: Both databases exist but schema is empty**
+
 - Create databases and seed default options
 
 ---
@@ -193,10 +198,12 @@ interface NotionSchema {
 ### Input
 
 **From:**
+
 - `.env` file (environment variables)
 - Notion API (database schemas)
 
 **Environment Variables Provided:**
+
 ```typescript
 interface ConfigEnv {
   GEMINI_API_KEY: string;
@@ -215,10 +222,12 @@ interface ConfigEnv {
 ### Output
 
 **To:**
+
 - Core Pipeline services (organization, notionSync)
 - Main entry point (environment config)
 
 **Schema Provided:**
+
 ```typescript
 interface ConfigServiceOutput {
   // Environment config
@@ -245,40 +254,48 @@ interface ConfigServiceOutput {
 ### Environment Variable Errors
 
 **Error:** Missing required environment variable
+
 - **Action:** Throw error on startup
 - **Message:** "Missing required environment variable: {var_name}"
 - **Recovery:** User must add variable to `.env` and restart
 
 **Error:** Invalid value (e.g., non-numeric POLL_INTERVAL)
+
 - **Action:** Use default value, log warning
 - **Message:** "Invalid {var_name}, using default: {default_value}"
 
 ### Notion API Errors
 
 **Error:** Invalid NOTION_API_KEY
+
 - **Action:** Throw error on startup
 - **Message:** "Invalid Notion API key"
 - **Recovery:** User must update API key
 
 **Error:** Database not found (invalid ID)
+
 - **Action:** Log warning, clear ID from config, trigger auto-setup
 - **Message:** "Database {id} not found, will create new database"
 
 **Error:** Network timeout during schema fetch
+
 - **Action:** Retry 3 times with exponential backoff (1s, 5s, 30s)
 - **Recovery:** If still failed, throw error and stop startup
 
 **Error:** Rate limit exceeded
+
 - **Action:** Wait 60 seconds, retry
 - **Recovery:** If retry fails, throw error
 
 ### Auto-Setup Errors
 
 **Error:** Failed to create database
+
 - **Action:** Log error, do not write ID to `.env`
 - **Message:** "Failed to create TODO database: {error}. Database IDs not written to .env. Please fix issue and restart."
 
 **Error:** Parent page not found (for database creation)
+
 - **Action:** Log error, stop auto-setup
 - **Message:** "Cannot create database: parent page {PARENT_PAGE_ID} not found. Please verify PARENT_PAGE_ID in .env"
 
@@ -287,6 +304,7 @@ interface ConfigServiceOutput {
 ## Implementation Notes
 
 ### Dependencies
+
 - `@notionhq/client` - Notion API client
 - `dotenv` - Environment variable loading
 
@@ -307,6 +325,7 @@ interface ConfigServiceOutput {
 ### Schema Updates
 
 When user changes Notion database properties (adds new category, changes priority options):
+
 1. Restart application
 2. Schema is fetched fresh on startup
 3. New options are available to AI organization service
@@ -317,17 +336,20 @@ When user changes Notion database properties (adds new category, changes priorit
 ## Testing Considerations
 
 ### Unit Tests
+
 - Environment variable loading
 - Schema parsing
 - Default value fallbacks
 
 ### Integration Tests
+
 - Notion API connection
 - Database creation
 - Schema fetching
 - Error scenarios (invalid key, missing database)
 
 ### Manual Testing
+
 - First run (auto-setup)
 - Subsequent runs (schema fetch)
 - Notion database property changes (schema refresh on restart)

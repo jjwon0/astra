@@ -62,47 +62,49 @@ Astra is a job-based automation system that currently processes voice memos (tra
          ├─ State Service (per-job state)
          └─ Archive Service
 ```
+
 ┌─────────────────┐
 │ iOS Voice Memos │
 └────────┬────────┘
-         │ iCloud Sync
-         ▼
+│ iCloud Sync
+▼
 ┌─────────────────┐
-│ File Watcher    │ ◄──────┐
-│ (5 min polling) │        │
-└────────┬────────┘        │
-         │                 │
-         ▼                 │
-┌─────────────────┐        │
-│ Transcription   │        │
-│ (Gemini API)    │        │
-└────────┬────────┘        │
-         │                 │
-         ▼                 │
-┌─────────────────┐        │
-│ Organization    │        │
-│ (Gemini +       │        │
-│  Dynamic Schema)│        │
-└────────┬────────┘        │
-         │                 │
-         ▼                 │
-┌─────────────────┐        │
-│ Notion Sync     │        │
-│ (Validation +   │        │
-│  Page Creation) │        │
-└────────┬────────┘        │
-         │                 │
-         ▼                 │
-┌─────────────────┐        │
-│ Archive Files   │        │
-│ Log Completion  │        │
-└─────────────────┘        │
-                           │
-                           ▼
-                  ┌─────────────────┐
-                  │ Config Service  │
-                  │ (Schema Fetch)  │
-                  └─────────────────┘
+│ File Watcher │ ◄──────┐
+│ (5 min polling) │ │
+└────────┬────────┘ │
+│ │
+▼ │
+┌─────────────────┐ │
+│ Transcription │ │
+│ (Gemini API) │ │
+└────────┬────────┘ │
+│ │
+▼ │
+┌─────────────────┐ │
+│ Organization │ │
+│ (Gemini + │ │
+│ Dynamic Schema)│ │
+└────────┬────────┘ │
+│ │
+▼ │
+┌─────────────────┐ │
+│ Notion Sync │ │
+│ (Validation + │ │
+│ Page Creation) │ │
+└────────┬────────┘ │
+│ │
+▼ │
+┌─────────────────┐ │
+│ Archive Files │ │
+│ Log Completion │ │
+└─────────────────┘ │
+│
+▼
+┌─────────────────┐
+│ Config Service │
+│ (Schema Fetch) │
+└─────────────────┘
+
 ```
 
 ---
@@ -122,6 +124,7 @@ Astra is a job-based automation system that currently processes voice memos (tra
 ## Complete Data Flow
 
 ```
+
 1. Job Scheduler starts
    └─> Registers all enabled jobs
    └─> Starts each job on its interval
@@ -130,11 +133,11 @@ Astra is a job-based automation system that currently processes voice memos (tra
    ├─> File Watcher detects new audio files
    ├─> Checks job state (already processed?)
    └─> For each new file:
-       ├─> Transcription (Gemini API) → Raw text
-       ├─> Organization (Gemini AI) → Structured JSON
-       ├─> Notion Sync (Validation + Page Creation)
-       ├─> Archive (Copy file to archive/)
-       └─> Update job state (mark completed)
+   ├─> Transcription (Gemini API) → Raw text
+   ├─> Organization (Gemini AI) → Structured JSON
+   ├─> Notion Sync (Validation + Page Creation)
+   ├─> Archive (Copy file to archive/)
+   └─> Update job state (mark completed)
 
 3. State is persisted per-job
    └─> voiceMemo state: processedFiles, failedFiles
@@ -143,6 +146,7 @@ Astra is a job-based automation system that currently processes voice memos (tra
 4. Repeat on interval
    └─> VoiceMemoJob: every 5 minutes
    └─> Future jobs: on their own intervals
+
 ```
 
 ---
@@ -150,43 +154,45 @@ Astra is a job-based automation system that currently processes voice memos (tra
 ## Directory Structure
 
 ```
+
 astra/
 ├── src/
-│   ├── scheduler/
-│   │   ├── Job.ts                # Job interface
-│   │   └── JobScheduler.ts      # Job scheduling logic
-│   ├── jobs/
-│   │   └── VoiceMemoJob.ts      # Voice memo processing job
-│   ├── services/
-│   │   ├── config/
-│   │   │   └── index.ts         # Config service (env + Notion schema)
-│   │   ├── core/
-│   │   │   ├── transcription.ts   # Gemini audio → text
-│   │   │   ├── organization.ts    # Gemini text → JSON
-│   │   │   └── notionSync.ts    # Notion API + validation
-│   │   └── utils/
-│   │       ├── logger.ts          # Plain text logging
-│   │       ├── archive.ts         # File archiving
-│   │       └── state.ts          # Per-job state tracking
-│   ├── types/
-│   │   └── index.ts             # TypeScript contracts
-│   └── index.ts                 # Main entry point (job registration)
+│ ├── scheduler/
+│ │ ├── Job.ts # Job interface
+│ │ └── JobScheduler.ts # Job scheduling logic
+│ ├── jobs/
+│ │ └── VoiceMemoJob.ts # Voice memo processing job
+│ ├── services/
+│ │ ├── config/
+│ │ │ └── index.ts # Config service (env + Notion schema)
+│ │ ├── core/
+│ │ │ ├── transcription.ts # Gemini audio → text
+│ │ │ ├── organization.ts # Gemini text → JSON
+│ │ │ └── notionSync.ts # Notion API + validation
+│ │ └── utils/
+│ │ ├── logger.ts # Plain text logging
+│ │ ├── archive.ts # File archiving
+│ │ └── state.ts # Per-job state tracking
+│ ├── types/
+│ │ └── index.ts # TypeScript contracts
+│ └── index.ts # Main entry point (job registration)
 ├── SPECS/
-│   ├── SYSTEM_SPEC.md            # This file
-│   ├── 1_CONFIG.md
-│   ├── 2_CORE_PIPELINE.md
-│   ├── 3_UTILITIES.md
-│   └── 4_JOB_SCHEDULER.md      # Job scheduler
+│ ├── SYSTEM_SPEC.md # This file
+│ ├── 1_CONFIG.md
+│ ├── 2_CORE_PIPELINE.md
+│ ├── 3_UTILITIES.md
+│ └── 4_JOB_SCHEDULER.md # Job scheduler
 ├── logs/
-│   └── astra.log                 # Plain text logs
-├── archive/                      # Processed audio files
-├── failed/                       # Files that failed processing
-├── .env                          # Environment variables
-├── .env.example                  # Environment template
+│ └── astra.log # Plain text logs
+├── archive/ # Processed audio files
+├── failed/ # Files that failed processing
+├── .env # Environment variables
+├── .env.example # Environment template
 ├── package.json
 ├── tsconfig.json
 └── README.md
-```
+
+````
 
 ---
 
@@ -246,14 +252,16 @@ FAILED_DIR=./failed/
 # Global Configuration
 LOG_FILE=./logs/astra.log
 MAX_RETRIES=3
-```
+````
 
 ### Notion Schema Defaults
 
 **TODO Database:**
+
 - Priority options: ["asap", "soon", "eventually"]
 
 **Notes Database:**
+
 - Category options: ["project idea", "feature idea", "research item", "general"]
 
 ---
@@ -261,14 +269,17 @@ MAX_RETRIES=3
 ## Deployment Overview
 
 ### Development Mode
+
 ```bash
 bun run dev
 ```
+
 - Runs in foreground
 - Verbose logging
 - Manual execution for testing
 
 ### Production Mode (macOS Daemon)
+
 ```bash
 # Create launchd plist file
 # Enable service to run in background
@@ -276,6 +287,7 @@ bun run dev
 ```
 
 ### Monitoring
+
 - Check logs: `tail -f ./logs/astra.log`
 - Check job status: Logs show job execution and errors
 - Failed files: Check `failed/` directory

@@ -93,15 +93,18 @@ class JobScheduler {
     for (const job of this.jobs) {
       if (!job.enabled) continue;
 
-      const interval = setInterval(async () => {
-        try {
-          const jobState = this.state.getJobState(job.name);
-          await job.execute(this.config, jobState, this.logger);
-          this.state.saveJobState(job.name, jobState);
-        } catch (error) {
-          this.logger.error(`Job ${job.name} failed: ${error.message}`);
-        }
-      }, job.intervalMinutes * 60 * 1000);
+      const interval = setInterval(
+        async () => {
+          try {
+            const jobState = this.state.getJobState(job.name);
+            await job.execute(this.config, jobState, this.logger);
+            this.state.saveJobState(job.name, jobState);
+          } catch (error) {
+            this.logger.error(`Job ${job.name} failed: ${error.message}`);
+          }
+        },
+        job.intervalMinutes * 60 * 1000
+      );
 
       this.intervals.push(interval);
     }
@@ -139,6 +142,7 @@ scheduler.start();
 ### Job Discovery
 
 No auto-discovery. Jobs are:
+
 - Defined in `src/jobs/` directory
 - Explicitly imported and registered in `src/index.ts`
 
@@ -169,9 +173,9 @@ EMAIL_RECIPIENT=user@example.com
 ```typescript
 // Each job loads its own config
 class VoiceMemoJob implements Job {
-  name = "voiceMemo";
+  name = 'voiceMemo';
   intervalMinutes = parseInt(config.VOICE_MEMO_JOB_INTERVAL_MINUTES) || 5;
-  enabled = config.VOICE_MEMO_JOB_ENABLED === "true";
+  enabled = config.VOICE_MEMO_JOB_ENABLED === 'true';
 
   constructor(config: Config) {
     this.voiceMemosDir = config.VOICE_MEMOS_DIR;
@@ -232,13 +236,13 @@ interface StateService {
 ```typescript
 class VoiceMemoJob implements Job {
   async execute(config, state, logger) {
-    const jobState = state.getJobState("voiceMemo");
+    const jobState = state.getJobState('voiceMemo');
 
     // Use jobState for job-specific state
     const newFiles = this.findNewFiles(jobState);
 
     // Save job state after execution
-    state.saveJobState("voiceMemo", jobState);
+    state.saveJobState('voiceMemo', jobState);
   }
 }
 ```
@@ -273,24 +277,26 @@ try {
 ### Step-by-Step
 
 1. **Create job file:**
+
    ```typescript
    // src/jobs/NewJob.ts
    import { Job } from '../scheduler/Job';
 
    export class NewJob implements Job {
-     name = "newJob";
+     name = 'newJob';
      intervalMinutes = 60;
-     enabled = config.NEW_JOB_ENABLED === "true";
+     enabled = config.NEW_JOB_ENABLED === 'true';
 
      async execute(config, state, logger) {
-       const jobState = state.getJobState("newJob");
+       const jobState = state.getJobState('newJob');
        // Job logic here
-       state.saveJobState("newJob", jobState);
+       state.saveJobState('newJob', jobState);
      }
    }
    ```
 
 2. **Add environment variables:**
+
    ```bash
    NEW_JOB_ENABLED=true
    NEW_JOB_INTERVAL_MINUTES=60
@@ -298,6 +304,7 @@ try {
    ```
 
 3. **Register in main entry point:**
+
    ```typescript
    // src/index.ts
    import { NewJob } from './jobs/NewJob';
@@ -329,16 +336,19 @@ src/
 ## Implementation Notes
 
 ### Dependencies
+
 - No external dependencies needed for scheduler
 - Uses `setInterval` for scheduling
 - Simple and lightweight
 
 ### Performance Considerations
+
 - Jobs run independently (no blocking)
 - Consider adding max concurrency limit if many jobs
 - Each job should handle its own resource limits
 
 ### Graceful Shutdown
+
 - On SIGINT/SIGTERM, call `scheduler.stop()`
 - Allow jobs to finish current execution before stopping
 
@@ -347,17 +357,20 @@ src/
 ## Testing Considerations
 
 ### Unit Tests
+
 - Job registration
 - Scheduling logic
 - Job isolation (one failure doesn't stop others)
 - State management per job
 
 ### Integration Tests
+
 - Multiple jobs running simultaneously
 - Job failure scenarios
 - State persistence across job runs
 
 ### Manual Testing
+
 - Run multiple jobs with different intervals
 - Verify job isolation (disable one job, others still run)
 - Test graceful shutdown

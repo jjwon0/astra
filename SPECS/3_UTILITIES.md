@@ -46,17 +46,20 @@ Provide plain text logging for all system operations, errors, and debugging info
 ### Log Levels
 
 **INFO:** Normal operations
+
 - Application start/stop
 - File processing steps
 - Successful operations
 - Schema updates
 
 **WARN:** Recoverable issues
+
 - Retrying operation
 - Non-critical errors
 - Partial failures
 
 **ERROR:** Critical failures
+
 - Failed operations (after retries)
 - API errors
 - Configuration errors
@@ -64,15 +67,17 @@ Provide plain text logging for all system operations, errors, and debugging info
 ### Log Rotation
 
 **Strategy:**
+
 - Size-based rotation
 - Rotate when log file exceeds 10 MB
 - Keep last 5 log files
 - Naming: `astra.log`, `astra.log.1`, `astra.log.2`, etc.
 
 **Implementation:**
+
 ```typescript
 class Logger {
-  log(level: "INFO" | "WARN" | "ERROR", message: string): void {
+  log(level: 'INFO' | 'WARN' | 'ERROR', message: string): void {
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
     const logLine = `${timestamp} [${level}] ${message}\n`;
 
@@ -80,7 +85,8 @@ class Logger {
 
     // Check file size and rotate if needed
     const stats = fs.statSync(this.logFile);
-    if (stats.size > 10 * 1024 * 1024) { // 10 MB
+    if (stats.size > 10 * 1024 * 1024) {
+      // 10 MB
       this.rotateLog();
     }
   }
@@ -103,6 +109,7 @@ class Logger {
 **Configurable:** Via `LOG_FILE` environment variable
 
 **Directory structure:**
+
 ```
 logs/
 ├── astra.log         # Current log
@@ -116,19 +123,22 @@ logs/
 ### Input/Output Contract
 
 **Input:**
+
 - Log level: "INFO" | "WARN" | "ERROR"
 - Message: string
 
 **Output:**
+
 - None (writes to file)
 
 **API:**
+
 ```typescript
 interface Logger {
   info(message: string): void;
   warn(message: string): void;
   error(message: string): void;
-  log(level: "INFO" | "WARN" | "ERROR", message: string): void;
+  log(level: 'INFO' | 'WARN' | 'ERROR', message: string): void;
 }
 ```
 
@@ -143,12 +153,14 @@ Copy processed audio files to archive directory. Keep originals (don't delete).
 ### Behavior
 
 **For each processed file:**
+
 1. Copy file from `VOICE_MEMOS_DIR` to `ARCHIVE_DIR`
 2. Preserve original filename
 3. Maintain original timestamp
 4. **Do not delete** original file
 
 **Example:**
+
 ```
 Input:  ~/Library/Mobile Documents/.../Voice Memos/voice_memo_001.m4a
 Output: ./archive/voice_memo_001.m4a
@@ -159,6 +171,7 @@ Output: ./archive/voice_memo_001.m4a
 **Archive directory:** `./archive/`
 
 **Structure:**
+
 ```
 archive/
 ├── voice_memo_001.m4a
@@ -179,39 +192,46 @@ failed/
 **Keep original filename:** No renaming
 
 **Optional enhancement (future):**
+
 - Add timestamp prefix: `2025-01-05_14-30-00_voice_memo_001.m4a`
 - Organize by date: `archive/2025-01-05/voice_memo_001.m4a`
 
 ### Input/Output Contract
 
 **Input:**
+
 - Source file path (from voice memos directory)
 - Archive directory path (from config)
 - Failed directory path (for failed files)
 
 **Output:**
+
 - Archive file path (success)
 - None (failed)
 
 **API:**
+
 ```typescript
 interface ArchiveService {
-  archive(filePath: string): Promise<string>;  // Returns archive path
-  archiveFailed(filePath: string): Promise<string>;  // Move to failed/
+  archive(filePath: string): Promise<string>; // Returns archive path
+  archiveFailed(filePath: string): Promise<string>; // Move to failed/
 }
 ```
 
 ### Error Handling
 
 **Error:** Source file not found
+
 - **Action:** Log error, skip archiving
 - **Recovery:** Continue with next file
 
 **Error:** Archive directory doesn't exist
+
 - **Action:** Create directory, then copy file
 - **Message:** "Archive directory not found, creating: {path}"
 
 **Error:** Permission denied
+
 - **Action:** Log error, stop processing
 - **Recovery:** User must fix permissions
 
@@ -228,20 +248,19 @@ Track processed files, in-progress files, and recovery checkpoints. Persist stat
 **Location:** `./state.json` (or configurable)
 
 **Format:**
+
 ```json
 {
   "processedFiles": {
     "voice_memo_001.m4a": "completed",
     "voice_memo_002.m4a": "completed"
   },
-  "failedFiles": [
-    "voice_memo_003.m4a",
-    "voice_memo_004.m4a"
-  ]
+  "failedFiles": ["voice_memo_003.m4a", "voice_memo_004.m4a"]
 }
 ```
 
 **Purpose:**
+
 - `processedFiles`: Track files that have been successfully processed (don't process again)
 - `failedFiles`: Track files that failed processing (don't retry them)
 
@@ -275,32 +294,39 @@ interface StateService {
 ### Input/Output Contract
 
 **Input:**
+
 - Filename to check/update
 
 **Output:**
+
 - Boolean (for `isProcessed`)
 - String arrays (for getting lists)
 
 ### Error Handling
 
 **Error:** State file not found (first run)
+
 - **Action:** Create new empty state file
 - **Message:** "No state file found, creating new state"
 
 **Error:** Corrupted state file (invalid JSON)
+
 - **Action:** Log error, create backup, create new empty state
 - **Message:** "State file corrupted, backed up to state.json.backup, creating new state"
 
 **Error:** Write failure (disk full)
+
 - **Action:** Log critical error, stop application
 - **Recovery:** User must free disk space
 
 ### Persistence
 
 **Save frequency:**
+
 - After each state update (mark in progress, update stage, mark completed, mark failed)
 
 **Atomic writes:**
+
 - Write to temporary file: `state.json.tmp`
 - Rename to `state.json` (atomic operation)
 
@@ -311,6 +337,7 @@ interface StateService {
 ### Dependencies
 
 **Shared dependencies:**
+
 - `fs` - Node.js filesystem module
 - `path` - Node.js path module
 - `dotenv` - Environment variables
@@ -318,14 +345,17 @@ interface StateService {
 ### Interactions
 
 **Logger Service:**
+
 - Called by: All services (config, core pipeline, archive, state)
 - Usage: Log all operations and errors
 
 **Archive Service:**
+
 - Called by: Core pipeline (after successful sync)
 - Calls: Logger (for logging archive operations)
 
 **State Service:**
+
 - Called by: File watcher (check if processed), Core pipeline (track completion/failure)
 - Calls: Logger (for logging state changes)
 
@@ -342,10 +372,10 @@ const state = new StateService('./state.json');
 
 // In core pipeline:
 logger.info(`Processing ${filename}`);
-state.markInProgress(filename, "in_progress: started");
+state.markInProgress(filename, 'in_progress: started');
 
 // After transcription:
-state.updateStage(filename, "in_progress: transcribed");
+state.updateStage(filename, 'in_progress: transcribed');
 
 // After successful sync:
 await archive.archive(filename);
@@ -363,20 +393,24 @@ state.markFailed(filename, error.message);
 ## Implementation Notes
 
 ### Dependencies
+
 - Node.js built-in: `fs`, `path`
 - No external dependencies for logging and archiving
 
 ### Performance Considerations
 
 **Logger:**
+
 - Use synchronous writes for reliability (fs.appendFileSync)
 - Consider async writes if performance becomes an issue
 
 **Archive:**
+
 - Use fs.copyFile for efficient copying
 - Consider streams for large files (>100 MB)
 
 **State:**
+
 - Load once at startup, keep in memory
 - Save on every update (small file size)
 
@@ -385,17 +419,20 @@ state.markFailed(filename, error.message);
 ## Testing Considerations
 
 ### Unit Tests
+
 - Logger format and rotation logic
 - Archive copy operations
 - State file save/load
 - Checkpoint tracking
 
 ### Integration Tests
+
 - Log rotation triggers
 - Archive with large files
 - State persistence across restarts
 
 ### Manual Testing
+
 - Process file, check archive directory
 - Check log file format and rotation
 - Verify state file accuracy

@@ -12,7 +12,7 @@ const STATE_FILE = './state.json';
 
 export class StateService {
   private state: AppState = {
-    jobs: {}
+    jobs: {},
   };
 
   constructor(stateFile: string = STATE_FILE) {

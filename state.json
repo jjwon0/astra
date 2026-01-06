@@ -1,0 +1,7 @@
+{
+  "jobs": {
+    "testJob": {
+      "file1.txt": "completed"
+    }
+  }
+}

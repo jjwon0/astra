@@ -13,3 +13,8 @@
 2026-01-06 09:56:16 [INFO] ✓ Logger service works
 2026-01-06 09:56:16 [INFO] Test 2: State Service
 2026-01-06 09:56:16 [ERROR] Infrastructure test failed: expect is not defined
+2026-01-06 10:13:17 [INFO] Starting infrastructure test
+2026-01-06 10:13:17 [INFO] Test 1: Logger Service
+2026-01-06 10:13:17 [INFO] ✓ Logger service works
+2026-01-06 10:13:17 [INFO] Test 2: State Service
+2026-01-06 10:13:17 [ERROR] Infrastructure test failed: expect is not defined

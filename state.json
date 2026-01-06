@@ -1,7 +1,7 @@
 {
   "jobs": {
     "testJob": {
-      "file1.txt": "completed"
+      "file1": "completed"
     }
   }
 }

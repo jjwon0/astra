@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "bun run src/index.ts",
-    "test": "bun run vitest",
+    "test": "bun run vitest --run",
     "test:watch": "bun run vitest --watch",
-    "test:coverage": "bun run vitest --coverage",
+    "test:coverage": "bun run vitest --coverage --run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

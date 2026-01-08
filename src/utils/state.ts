@@ -67,8 +67,8 @@ export class StateService {
   }
 
   markJobCompleted(jobName: string, identifier: string): void {
-    const jobState = this.state.jobs[jobName] || {};
-    if (typeof jobState !== 'object') {
+    const jobState = this.state.jobs[jobName];
+    if (!jobState || typeof jobState !== 'object') {
       this.state.jobs[jobName] = {};
     }
 
@@ -82,7 +82,7 @@ export class StateService {
       this.state.jobs[jobName] = {};
     }
 
-    const currentState = this.state.jobs[jobName] as Record<string, string>;
+    const currentState = this.state.jobs[jobName] as Record<string, any>;
     if (!currentState.failed) {
       currentState.failed = [];
     }

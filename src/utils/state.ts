@@ -8,21 +8,23 @@ interface JobState {
   [key: string]: any;
 }
 
-const STATE_FILE = './state.json';
+const DEFAULT_STATE_FILE = './state.json';
 
 export class StateService {
   private state: AppState = {
     jobs: {},
   };
+  private stateFile: string;
 
-  constructor(stateFile: string = STATE_FILE) {
-    this.load(stateFile);
+  constructor(stateFile: string = DEFAULT_STATE_FILE) {
+    this.stateFile = stateFile;
+    this.load();
   }
 
-  private load(stateFile: string): void {
-    if (existsSync(stateFile)) {
+  private load(): void {
+    if (existsSync(this.stateFile)) {
       try {
-        const content = readFileSync(stateFile, 'utf-8');
+        const content = readFileSync(this.stateFile, 'utf-8');
         this.state = JSON.parse(content) as AppState;
       } catch (error) {
         console.error(`Failed to load state: ${error}`);
@@ -30,19 +32,19 @@ export class StateService {
       }
     } else {
       this.state = { jobs: {} };
-      this.save(stateFile);
+      this.save();
     }
   }
 
-  private save(stateFile: string): void {
-    const dir = stateFile.substring(0, stateFile.lastIndexOf('/'));
-    if (!existsSync(dir)) {
+  private save(): void {
+    const dir = this.stateFile.substring(0, this.stateFile.lastIndexOf('/'));
+    if (dir && !existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
 
-    const tmpFile = `${stateFile}.tmp`;
+    const tmpFile = `${this.stateFile}.tmp`;
     writeFileSync(tmpFile, JSON.stringify(this.state, null, 2));
-    renameSync(tmpFile, stateFile);
+    renameSync(tmpFile, this.stateFile);
   }
 
   getJobState(jobName: string): JobState {
@@ -51,7 +53,7 @@ export class StateService {
 
   saveJobState(jobName: string, jobState: JobState): void {
     this.state.jobs[jobName] = jobState;
-    this.save(STATE_FILE);
+    this.save();
   }
 
   isJobProcessed(jobName: string, identifier: string): boolean {
@@ -73,7 +75,7 @@ export class StateService {
     }
 
     (this.state.jobs[jobName] as Record<string, string>)[identifier] = 'completed';
-    this.save(STATE_FILE);
+    this.save();
   }
 
   markJobFailed(jobName: string, identifier: string, reason: string): void {
@@ -92,6 +94,6 @@ export class StateService {
     }
 
     this.state.jobs[jobName] = currentState;
-    this.save(STATE_FILE);
+    this.save();
   }
 }

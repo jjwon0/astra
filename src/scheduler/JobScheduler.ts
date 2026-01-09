@@ -17,12 +17,20 @@ export class JobScheduler {
     this.jobs.push(job);
   }
 
-  start(): void {
+  async start(): Promise<void> {
     for (const job of this.jobs) {
       if (!job.enabled) {
         continue;
       }
 
+      // Run immediately on start
+      try {
+        await job.execute(this.config, this.state, this.logger);
+      } catch (error: any) {
+        this.logger.error(`Job ${job.name} failed: ${error.message}`);
+      }
+
+      // Then schedule for recurring execution
       const interval = setInterval(
         async () => {
           try {

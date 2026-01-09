@@ -2,6 +2,7 @@ import { Client } from '@notionhq/client';
 import dotenv from 'dotenv';
 import { readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
+import { homedir } from 'os';
 
 dotenv.config();
 
@@ -37,6 +38,16 @@ export class ConfigService {
     this.notion = new Client({ auth: this.env.NOTION_API_KEY });
   }
 
+  private expandTilde(path: string): string {
+    if (path.startsWith('~/')) {
+      return resolve(homedir(), path.slice(2));
+    }
+    if (path === '~') {
+      return homedir();
+    }
+    return path;
+  }
+
   private loadEnv(): ConfigEnv {
     const requiredVars = ['GEMINI_API_KEY', 'NOTION_API_KEY', 'PARENT_PAGE_ID'];
     const missingVars: string[] = [];
@@ -57,10 +68,10 @@ export class ConfigService {
       NOTION_TODO_DATABASE_ID: process.env.NOTION_TODO_DATABASE_ID,
       NOTION_NOTES_DATABASE_ID: process.env.NOTION_NOTES_DATABASE_ID,
       PARENT_PAGE_ID: process.env.PARENT_PAGE_ID!,
-      VOICE_MEMOS_DIR: process.env.VOICE_MEMOS_DIR || '~/VoiceMemos',
-      ARCHIVE_DIR: process.env.ARCHIVE_DIR || './archive',
-      FAILED_DIR: process.env.FAILED_DIR || './failed',
-      LOG_FILE: process.env.LOG_FILE || './logs/astra.log',
+      VOICE_MEMOS_DIR: this.expandTilde(process.env.VOICE_MEMOS_DIR || '~/VoiceMemos'),
+      ARCHIVE_DIR: this.expandTilde(process.env.ARCHIVE_DIR || './archive'),
+      FAILED_DIR: this.expandTilde(process.env.FAILED_DIR || './failed'),
+      LOG_FILE: this.expandTilde(process.env.LOG_FILE || './logs/astra.log'),
       VOICE_MEMO_JOB_ENABLED: process.env.VOICE_MEMO_JOB_ENABLED || 'true',
       VOICE_MEMO_JOB_INTERVAL_MINUTES: process.env.VOICE_MEMO_JOB_INTERVAL_MINUTES || '5',
       MAX_RETRIES: process.env.MAX_RETRIES || '3'

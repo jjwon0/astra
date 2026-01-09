@@ -65,27 +65,30 @@ describe('JobScheduler Integration', () => {
 
       scheduler.register(job1);
       scheduler.register(job2);
-      scheduler.start();
+      await scheduler.start();
+
+      // Both run immediately on start
+      expect(job1.execute).toHaveBeenCalledTimes(1);
+      expect(job2.execute).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
 
-      expect(job1.execute).toHaveBeenCalledTimes(2);
-      expect(job2.execute).toHaveBeenCalledTimes(1);
+      // job1 runs at 1min, 2min intervals = 2 more times
+      // job2 runs at 2min interval = 1 more time
+      expect(job1.execute).toHaveBeenCalledTimes(3);
+      expect(job2.execute).toHaveBeenCalledTimes(2);
     });
 
     it('should run jobs independently without blocking', async () => {
-      let job1Started = false;
-      let job2Started = false;
-      let job1Finished = false;
+      let job1Executed = false;
+      let job2Executed = false;
 
       const job1: Job = {
         name: 'job1',
         intervalMinutes: 1,
         enabled: true,
         execute: vi.fn().mockImplementation(async () => {
-          job1Started = true;
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          job1Finished = true;
+          job1Executed = true;
         }),
       };
 
@@ -94,18 +97,19 @@ describe('JobScheduler Integration', () => {
         intervalMinutes: 1,
         enabled: true,
         execute: vi.fn().mockImplementation(async () => {
-          job2Started = true;
+          job2Executed = true;
         }),
       };
 
       scheduler.register(job1);
       scheduler.register(job2);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-
-      expect(job1Started).toBe(true);
-      expect(job2Started).toBe(true);
+      // Both run immediately on start
+      expect(job1Executed).toBe(true);
+      expect(job2Executed).toBe(true);
+      expect(job1.execute).toHaveBeenCalledTimes(1);
+      expect(job2.execute).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -127,12 +131,16 @@ describe('JobScheduler Integration', () => {
 
       scheduler.register(failingJob);
       scheduler.register(healthyJob);
-      scheduler.start();
+      await scheduler.start();
+
+      // Both run immediately on start
+      expect(failingJob.execute).toHaveBeenCalledTimes(1);
+      expect(healthyJob.execute).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
 
-      expect(failingJob.execute).toHaveBeenCalledTimes(1);
-      expect(healthyJob.execute).toHaveBeenCalledTimes(1);
+      expect(failingJob.execute).toHaveBeenCalledTimes(2);
+      expect(healthyJob.execute).toHaveBeenCalledTimes(2);
     });
 
     it('should log error when job fails', async () => {
@@ -144,10 +152,9 @@ describe('JobScheduler Integration', () => {
       };
 
       scheduler.register(failingJob);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-
+      // Error logged on immediate execution
       const { readFileSync } = await import('fs');
       const logContent = readFileSync(testLogFile, 'utf-8');
       expect(logContent).toContain('[ERROR]');
@@ -170,10 +177,9 @@ describe('JobScheduler Integration', () => {
       };
 
       scheduler.register(testJob);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-
+      // Job runs immediately on start
       expect(testJob.execute).toHaveBeenCalledTimes(1);
 
       const savedState = state.getJobState('testJob');
@@ -196,10 +202,9 @@ describe('JobScheduler Integration', () => {
       };
 
       scheduler.register(persistentJob);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-
+      // Job runs immediately on start
       expect(persistentJob.execute).toHaveBeenCalledTimes(1);
     });
 
@@ -224,10 +229,9 @@ describe('JobScheduler Integration', () => {
 
       scheduler.register(job1);
       scheduler.register(job2);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-
+      // Jobs run immediately on start
       const job1State = state.getJobState('job1');
       const job2State = state.getJobState('job2');
 
@@ -246,7 +250,7 @@ describe('JobScheduler Integration', () => {
       };
 
       scheduler.register(disabledJob);
-      scheduler.start();
+      await scheduler.start();
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
 
@@ -270,11 +274,15 @@ describe('JobScheduler Integration', () => {
 
       scheduler.register(enabledJob);
       scheduler.register(disabledJob);
-      scheduler.start();
+      await scheduler.start();
+
+      // Enabled job runs immediately on start
+      expect(enabledJob.execute).toHaveBeenCalledTimes(1);
+      expect(disabledJob.execute).not.toHaveBeenCalled();
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
 
-      expect(enabledJob.execute).toHaveBeenCalledTimes(1);
+      expect(enabledJob.execute).toHaveBeenCalledTimes(2);
       expect(disabledJob.execute).not.toHaveBeenCalled();
     });
   });
@@ -289,20 +297,26 @@ describe('JobScheduler Integration', () => {
       };
 
       scheduler.register(testJob);
-      scheduler.start();
+      await scheduler.start();
+
+      // Runs immediately on start
+      expect(testJob.execute).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-      expect(testJob.execute).toHaveBeenCalledTimes(1);
+      expect(testJob.execute).toHaveBeenCalledTimes(2);
 
       scheduler.stop();
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-      expect(testJob.execute).toHaveBeenCalledTimes(1);
+      expect(testJob.execute).toHaveBeenCalledTimes(2);
 
-      scheduler.start();
+      await scheduler.start();
+
+      // Runs immediately on restart
+      expect(testJob.execute).toHaveBeenCalledTimes(3);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-      expect(testJob.execute).toHaveBeenCalledTimes(2);
+      expect(testJob.execute).toHaveBeenCalledTimes(4);
     });
   });
 });

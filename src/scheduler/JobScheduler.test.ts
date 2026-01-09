@@ -87,18 +87,27 @@ describe('JobScheduler', () => {
   });
 
   describe('start', () => {
-    it('should create interval for enabled job', async () => {
+    it('should run job immediately on start', async () => {
       scheduler.register(mockJob);
-      scheduler.start();
-
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      await scheduler.start();
 
       expect(mockJob.execute).toHaveBeenCalledTimes(1);
     });
 
+    it('should create interval for enabled job after immediate execution', async () => {
+      scheduler.register(mockJob);
+      await scheduler.start();
+
+      expect(mockJob.execute).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+
+      expect(mockJob.execute).toHaveBeenCalledTimes(2);
+    });
+
     it('should skip disabled jobs', async () => {
       scheduler.register(mockDisabledJob);
-      scheduler.start();
+      await scheduler.start();
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
 
@@ -122,19 +131,22 @@ describe('JobScheduler', () => {
 
       scheduler.register(errorJob);
       scheduler.register(anotherJob);
-      scheduler.start();
+      await scheduler.start();
+
+      // Both jobs run immediately on start
+      expect(mockLogger.error).toHaveBeenCalledWith('Job errorJob failed: Test error');
+      expect(anotherJob.execute).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
 
-      expect(mockLogger.error).toHaveBeenCalledWith('Job errorJob failed: Test error');
-      expect(anotherJob.execute).toHaveBeenCalledTimes(1);
+      expect(anotherJob.execute).toHaveBeenCalledTimes(2);
     });
 
     it('should run job repeatedly on interval', async () => {
       scheduler.register(mockJob);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      // Initial immediate execution
       expect(mockJob.execute).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
@@ -142,6 +154,9 @@ describe('JobScheduler', () => {
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
       expect(mockJob.execute).toHaveBeenCalledTimes(3);
+
+      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      expect(mockJob.execute).toHaveBeenCalledTimes(4);
     });
 
     it('should run multiple jobs independently', async () => {
@@ -161,11 +176,11 @@ describe('JobScheduler', () => {
 
       scheduler.register(job1);
       scheduler.register(job2);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      // Both run immediately on start
       expect(job1.execute).toHaveBeenCalledTimes(1);
-      expect(job2.execute).toHaveBeenCalledTimes(0);
+      expect(job2.execute).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
       expect(job1.execute).toHaveBeenCalledTimes(2);
@@ -173,40 +188,53 @@ describe('JobScheduler', () => {
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
       expect(job1.execute).toHaveBeenCalledTimes(3);
-      expect(job2.execute).toHaveBeenCalledTimes(1);
+      expect(job2.execute).toHaveBeenCalledTimes(2);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
       expect(job1.execute).toHaveBeenCalledTimes(4);
       expect(job2.execute).toHaveBeenCalledTimes(2);
+
+      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      expect(job1.execute).toHaveBeenCalledTimes(5);
+      expect(job2.execute).toHaveBeenCalledTimes(3);
     });
   });
 
   describe('stop', () => {
     it('should clear all intervals', async () => {
       scheduler.register(mockJob);
-      scheduler.start();
+      await scheduler.start();
+
+      // Immediate execution on start
+      expect(mockJob.execute).toHaveBeenCalledTimes(1);
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-      expect(mockJob.execute).toHaveBeenCalledTimes(1);
+      expect(mockJob.execute).toHaveBeenCalledTimes(2);
 
       scheduler.stop();
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
-      expect(mockJob.execute).toHaveBeenCalledTimes(1);
+      expect(mockJob.execute).toHaveBeenCalledTimes(2);
     });
 
     it('should allow restart after stop', async () => {
       scheduler.register(mockJob);
-      scheduler.start();
+      await scheduler.start();
 
-      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      // Immediate execution on first start
       expect(mockJob.execute).toHaveBeenCalledTimes(1);
-
-      scheduler.stop();
-      scheduler.start();
 
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
       expect(mockJob.execute).toHaveBeenCalledTimes(2);
+
+      scheduler.stop();
+      await scheduler.start();
+
+      // Immediate execution on second start
+      expect(mockJob.execute).toHaveBeenCalledTimes(3);
+
+      await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      expect(mockJob.execute).toHaveBeenCalledTimes(4);
     });
   });
 

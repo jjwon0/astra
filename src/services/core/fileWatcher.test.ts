@@ -55,7 +55,7 @@ describe('FileWatcher', () => {
     writeFileSync(join(testDir, 'test1.m4a'), 'audio content');
     writeFileSync(join(testDir, 'test2.m4a'), 'audio content');
 
-    stateService.markJobCompleted('voiceMemoJob', 'test1.m4a');
+    stateService.markJobCompleted('voiceMemo', 'test1.m4a');
 
     const watcher = new FileWatcher(testDir);
     const files = await watcher.watch(stateService, logger);

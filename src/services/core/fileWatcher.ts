@@ -5,7 +5,7 @@ import { Logger } from '../../utils/logger';
 
 export class FileWatcher {
   private voiceMemosDir: string;
-  private jobName: string = 'voiceMemoJob';
+  private jobName: string = 'voiceMemo';
 
   constructor(voiceMemosDir: string) {
     this.voiceMemosDir = voiceMemosDir;

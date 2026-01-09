@@ -39,6 +39,9 @@ export class TranscriptionService {
                 {
                   parts: [
                     {
+                      text: 'Transcribe the following audio exactly as spoken. Only output the transcription, nothing else.',
+                    },
+                    {
                       inline_data: {
                         mime_type: this.getMimeType(filePath),
                         data: base64Audio,

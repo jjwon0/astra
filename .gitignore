@@ -3,3 +3,12 @@ dist
 coverage
 *.config.ts
 .env
+
+# Runtime
+logs/
+archive/
+failed/
+state.json
+
+# IDE/Tools
+.claude/

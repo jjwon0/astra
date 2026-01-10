@@ -1,6 +1,6 @@
 # Astra
 
-A job-based automation system that processes voice memos into structured TODOs and notes in Notion.
+A job-based automation system for personal productivity. Currently processes voice memos into structured TODOs and notes in Notion.
 
 ## Quick Start
 

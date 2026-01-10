@@ -49,7 +49,19 @@ scripts/                  # Daemon install/uninstall scripts
 - **State persistence** - `state.json` tracks processed files (git-ignored)
 - **Logs** - Written to `logs/astra.log` with automatic rotation at 10MB
 
+## Documentation
+
+When modifying code, update the relevant docs in `docs/` to keep them in sync:
+
+- `docs/architecture.md` - System overview and component interactions
+- `docs/config.md` - Environment variables and Notion setup
+- `docs/pipeline.md` - Core pipeline services
+- `docs/utilities.md` - Logger, archive, state services
+- `docs/jobs.md` - Job system and adding new jobs
+
 ## Architecture
+
+The scheduler supports multiple concurrent jobs. VoiceMemoJob is the current implementation:
 
 ```
 JobScheduler

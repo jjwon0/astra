@@ -74,7 +74,7 @@ export class ConfigService {
       LOG_FILE: this.expandTilde(process.env.LOG_FILE || './logs/astra.log'),
       VOICE_MEMO_JOB_ENABLED: process.env.VOICE_MEMO_JOB_ENABLED || 'true',
       VOICE_MEMO_JOB_INTERVAL_MINUTES: process.env.VOICE_MEMO_JOB_INTERVAL_MINUTES || '5',
-      MAX_RETRIES: process.env.MAX_RETRIES || '3'
+      MAX_RETRIES: process.env.MAX_RETRIES || '3',
     };
   }
 
@@ -127,22 +127,22 @@ export class ConfigService {
             options: [
               { name: 'asap', color: 'red' },
               { name: 'soon', color: 'yellow' },
-              { name: 'eventually', color: 'gray' }
-            ]
-          }
+              { name: 'eventually', color: 'gray' },
+            ],
+          },
         },
         status: {
           select: {
             options: [
               { name: 'not started', color: 'gray' },
               { name: 'in progress', color: 'blue' },
-              { name: 'done', color: 'green' }
-            ]
-          }
+              { name: 'done', color: 'green' },
+            ],
+          },
         },
         created_date: { date: {} },
-        source: { rich_text: {} }
-      }
+        source: { rich_text: {} },
+      },
     });
   }
 
@@ -159,13 +159,13 @@ export class ConfigService {
               { name: 'project idea', color: 'purple' },
               { name: 'feature idea', color: 'blue' },
               { name: 'research item', color: 'orange' },
-              { name: 'general', color: 'gray' }
-            ]
-          }
+              { name: 'general', color: 'gray' },
+            ],
+          },
         },
         created_date: { date: {} },
-        source: { rich_text: {} }
-      }
+        source: { rich_text: {} },
+      },
     });
   }
 
@@ -180,7 +180,7 @@ export class ConfigService {
     try {
       const [todoDb, notesDb] = await Promise.all([
         this.notion.databases.retrieve({ database_id: todoDbId }),
-        this.notion.databases.retrieve({ database_id: notesDbId })
+        this.notion.databases.retrieve({ database_id: notesDbId }),
       ]);
 
       const priorities = this.extractSelectOptions(todoDb, 'priority');
@@ -190,7 +190,7 @@ export class ConfigService {
         todoDatabaseId: todoDbId,
         notesDatabaseId: notesDbId,
         priorities,
-        categories
+        categories,
       };
     } catch (error: any) {
       throw new Error(`Failed to fetch Notion schema: ${error.message}`);
@@ -216,8 +216,11 @@ export class ConfigService {
     }
 
     const lines = envContent.split('\n');
-    const updatedLines = lines.filter(line => {
-      return !line.startsWith('NOTION_TODO_DATABASE_ID=') && !line.startsWith('NOTION_NOTES_DATABASE_ID=');
+    const updatedLines = lines.filter((line) => {
+      return (
+        !line.startsWith('NOTION_TODO_DATABASE_ID=') &&
+        !line.startsWith('NOTION_NOTES_DATABASE_ID=')
+      );
     });
 
     if (this.env.NOTION_TODO_DATABASE_ID) {

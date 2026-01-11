@@ -1,6 +1,6 @@
 # Pipeline Services
 
-The core pipeline provides services for voice memo processing: file watching, transcription, organization, and Notion sync.
+The core pipeline provides services for voice memo processing: file watching, transcription, intent routing, organization (TODOs/notes), journal formatting, and Notion sync.
 
 ## File Watcher
 
@@ -74,6 +74,24 @@ Garbage recordings are archived to `invalid/` instead of being processed.
 - **Network timeout:** Retry 3 times with exponential backoff
 - **Invalid audio format:** Log error, move to `failed/`
 - **Rate limit:** Wait 60 seconds, retry
+
+## Intent Routing
+
+After transcription, recordings are routed based on keyword prefixes:
+
+| Prefix Pattern          | Intent    | Processing Path              |
+| ----------------------- | --------- | ---------------------------- |
+| `todo:`, `to do:`, `to-do:` | TODO  | Organization → Notion Sync   |
+| `note:`                 | NOTE      | Organization → Notion Sync   |
+| Everything else         | JOURNAL   | Journal Format → Journal Sync |
+
+The prefix (and punctuation) is stripped before further processing.
+
+**Examples:**
+- "Todo: buy groceries" → TODO, processed by OrganizationService
+- "Note: interesting article about AI" → NOTE, processed by OrganizationService
+- "Had a great day at the park" → JOURNAL, processed by JournalService
+- "Journal: thoughts on the meeting" → JOURNAL (explicit prefix also works)
 
 ## Organization Service
 
@@ -178,6 +196,80 @@ interface SyncResult {
 - **Network error:** Retry 3 times
 - **Partial success:** Continue processing remaining items
 
+## Journal Service
+
+Cleans up voice transcripts for journal entries using Gemini AI.
+
+### Behavior
+
+1. Receives raw transcript (with "journal" prefix already stripped)
+2. Sends to Gemini with cleanup prompt
+3. Returns polished text ready for Notion
+
+### Cleanup Rules
+
+The AI applies these transformations:
+- Remove filler words (um, uh, like, you know, basically, actually, sort of)
+- Fix grammar and punctuation
+- Format into natural paragraphs at topic/thought changes
+- Preserve original meaning and conversational tone
+- No headers, metadata, or commentary added
+
+### Input/Output
+
+```typescript
+interface JournalFormatResult {
+  formattedText: string;
+  success: boolean;
+  error?: string;
+}
+```
+
+## Journal Notion Sync Service
+
+Syncs journal entries to Notion with one page per day.
+
+### Behavior
+
+1. Check if a page exists for the recording's date
+2. If exists: append entry with timestamp heading and divider
+3. If not: create new page titled with the date
+
+### Page Structure
+
+Each journal page contains:
+- **Title:** "January 11, 2026" (formatted date)
+- **Date property:** ISO date for filtering/sorting
+- **Content:** Multiple timestamped entries throughout the day
+
+Entry format:
+```
+---
+### 2:30 PM
+Cleaned up journal text appears here as paragraphs...
+
+---
+### 5:45 PM
+Another entry from later in the day...
+```
+
+### Input/Output
+
+```typescript
+interface JournalSyncResult {
+  success: boolean;
+  pageId: string;
+  isNewPage: boolean;
+  error?: string;
+}
+```
+
+### Error Handling
+
+- **Page not found:** Create new page
+- **API errors:** Retry 3 times with backoff
+- **Text too long:** Automatically chunked to 2000 char blocks
+
 ## Complete Data Flow
 
 ```
@@ -192,21 +284,34 @@ START (every 5 minutes)
     │
     ├─> Transcription.transcribe(file)
     │   ├─> Upload to Gemini
-    │   └─> Get transcript: "TODO: buy milk..."
+    │   ├─> Get transcript + confidence score
+    │   └─> If garbage → Archive to invalid/, DONE
     │
-    ├─> Organization.organize(transcript)
-    │   ├─> Fetch schema: priorities, categories
-    │   ├─> Build prompt with enums
-    │   ├─> Send to Gemini
-    │   └─> Get JSON: { items: [...] }
+    ├─> Detect intent from transcript prefix
+    │   ├─> "todo:" or "note:" → TODO/NOTE path
+    │   └─> Everything else → JOURNAL path
     │
-    ├─> NotionSync.sync(items, filename)
-    │   ├─> Validate against schema
-    │   ├─> Create pages in Notion
-    │   └─> Mark file as completed in state
+    ├─> [TODO/NOTE PATH]
+    │   ├─> Organization.organize(transcript)
+    │   │   ├─> Build prompt with schema enums
+    │   │   ├─> Send to Gemini
+    │   │   └─> Get JSON: { items: [...] }
+    │   │
+    │   └─> NotionSync.sync(items)
+    │       ├─> Validate against schema
+    │       └─> Create pages in TODO/Notes database
+    │
+    ├─> [JOURNAL PATH]
+    │   ├─> JournalService.format(transcript)
+    │   │   ├─> Clean up filler words, grammar
+    │   │   └─> Return polished text
+    │   │
+    │   └─> JournalNotionSync.syncEntry(text, timestamp)
+    │       ├─> Find or create day's page
+    │       └─> Append timestamped entry
     │
     ├─> Archive.archive(file)
     │   └─> Copy to archive/ directory
     │
-    └─> Log: "Processed file.m4a: 2 TODOs created"
+    └─> Mark completed in state
 ```

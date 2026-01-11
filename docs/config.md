@@ -21,6 +21,7 @@ PARENT_PAGE_ID=<your_notion_parent_page_id>  # Required for database creation
 # Database IDs (auto-created if missing)
 NOTION_TODO_DATABASE_ID=<todo_db_id>
 NOTION_NOTES_DATABASE_ID=<notes_db_id>
+NOTION_JOURNAL_DATABASE_ID=<journal_db_id>
 
 # Directory Paths
 VOICE_MEMOS_DIR=~/Library/Mobile Documents/.../Voice Memos/
@@ -48,6 +49,7 @@ The config service fetches and caches this schema on startup:
 interface NotionSchema {
   todoDatabaseId: string;
   notesDatabaseId: string;
+  journalDatabaseId: string;
   priorities: string[]; // e.g., ["asap", "soon", "eventually"]
   categories: string[]; // e.g., ["project idea", "feature idea", ...]
 }
@@ -87,6 +89,16 @@ On first run, if database IDs are empty or invalid, the config service automatic
 | category     | Select    | project idea (purple), feature idea (blue), research item (orange), general (gray) |
 | created_date | Date      | -                                                                                  |
 | source       | Rich text | -                                                                                  |
+
+### Journal Database Properties
+
+| Property  | Type     | Description                                |
+| --------- | -------- | ------------------------------------------ |
+| title     | Title    | Formatted date (e.g., "January 11, 2026")  |
+| date      | Date     | ISO date for filtering/sorting             |
+| processed | Checkbox | For future post-processing workflows       |
+
+Journal entries are stored as page content (blocks), not properties. Each day has one page with multiple timestamped entries appended throughout the day.
 
 After creating databases, the service writes the new IDs to `.env` and logs a message to restart.
 

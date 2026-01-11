@@ -43,8 +43,31 @@ interface TranscriptionResult {
   text: string;
   success: boolean;
   error?: string;
+  confidence?: number;      // 0-100 quality score
+  isGarbage?: boolean;      // true if recording is noise/silence
+  garbageReason?: string;   // explanation if garbage detected
 }
 ```
+
+### Garbage Detection
+
+The transcription service asks Gemini to assess audio quality alongside transcription. Recordings are flagged as garbage if:
+
+- Less than 2 words of actual speech
+- Only background noise, static, or ambient sounds
+- Mostly silence
+- Completely unintelligible speech
+
+**Confidence thresholds:**
+
+| Score   | Meaning                                    |
+| ------- | ------------------------------------------ |
+| 80-100  | Clear speech with understandable content   |
+| 50-79   | Partially audible, some unclear portions   |
+| 20-49   | Mostly noise with possible speech fragments |
+| 0-19    | No discernible speech                      |
+
+Garbage recordings are archived to `invalid/` instead of being processed.
 
 ### Error Handling
 

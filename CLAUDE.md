@@ -51,13 +51,19 @@ scripts/                  # Daemon install/uninstall scripts
 
 ## Documentation
 
-When modifying code, update the relevant docs in `docs/` to keep them in sync:
+**IMPORTANT:** Documentation must stay in sync with code. When making changes, always update the relevant docs in `docs/` as part of the same commit:
 
 - `docs/architecture.md` - System overview and component interactions
 - `docs/config.md` - Environment variables and Notion setup
-- `docs/pipeline.md` - Core pipeline services
+- `docs/pipeline.md` - Core pipeline services (transcription, organization, sync)
 - `docs/utilities.md` - Logger, archive, state services
 - `docs/jobs.md` - Job system and adding new jobs
+
+**What to update:**
+- New environment variables → `docs/config.md`
+- New/modified service interfaces → `docs/pipeline.md` or `docs/utilities.md`
+- New archive destinations or behaviors → `docs/utilities.md`
+- Architectural changes → `docs/architecture.md`
 
 ## Architecture
 

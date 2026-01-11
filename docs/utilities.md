@@ -73,16 +73,29 @@ archive/
 failed/
 ├── corrupted_file.m4a
 └── unsupported_format.wav
+
+invalid/
+├── noise_recording.m4a
+└── silent_recording.m4a
 ```
 
 ### API
 
 ```typescript
 interface ArchiveService {
-  archive(filePath: string): Promise<string>; // Returns archive path
-  archiveFailed(filePath: string): Promise<string>; // Move to failed/
+  archive(filePath: string): Promise<string>;        // Returns archive path
+  archiveFailed(filePath: string): Promise<string>;  // Copy to failed/
+  archiveInvalid(filePath: string): Promise<string>; // Copy to invalid/
 }
 ```
+
+### Archive Destinations
+
+| Destination | When Used                                         |
+| ----------- | ------------------------------------------------- |
+| `archive/`  | Successfully processed recordings                 |
+| `failed/`   | Processing errors (API failures, corrupted files) |
+| `invalid/`  | Garbage recordings (noise, silence, too short)    |
 
 ### Error Handling
 
@@ -157,7 +170,7 @@ import { ArchiveService } from './utils/archive';
 import { StateService } from './utils/state';
 
 const logger = new Logger('./logs/astra.log');
-const archive = new ArchiveService('./archive', './failed');
+const archive = new ArchiveService('./archive', './failed', './invalid');
 const state = new StateService('./state.json');
 
 // Processing a file

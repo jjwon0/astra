@@ -26,6 +26,7 @@ NOTION_NOTES_DATABASE_ID=<notes_db_id>
 VOICE_MEMOS_DIR=~/Library/Mobile Documents/.../Voice Memos/
 ARCHIVE_DIR=./archive/
 FAILED_DIR=./failed/
+INVALID_DIR=./invalid/
 LOG_FILE=./logs/astra.log
 
 # Job Configuration
@@ -34,6 +35,7 @@ VOICE_MEMO_JOB_INTERVAL_MINUTES=5
 
 # Behavior
 MAX_RETRIES=3
+GARBAGE_CONFIDENCE_THRESHOLD=30
 ```
 
 ## Notion Schema

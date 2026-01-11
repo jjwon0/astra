@@ -113,14 +113,14 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo1.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Buy groceries tomorrow morning',
+      text: 'TODO: Buy groceries tomorrow morning',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
       items: [
         {
           type: 'TODO',
-          content: 'Buy groceries tomorrow morning',
+          content: 'TODO: Buy groceries tomorrow morning',
           priority: 'medium',
           category: 'personal',
         },
@@ -140,7 +140,7 @@ describe('VoiceMemoJob Integration', () => {
       mockLogger
     );
     expect(mockOrganizationService.organize).toHaveBeenCalledWith(
-      'Buy groceries tomorrow morning',
+      'TODO: Buy groceries tomorrow morning',
       mockConfig.getSchema(),
       mockLogger
     );
@@ -148,7 +148,7 @@ describe('VoiceMemoJob Integration', () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: 'TODO',
-          content: 'Buy groceries tomorrow morning',
+          content: 'TODO: Buy groceries tomorrow morning',
         }),
       ]),
       'memo1.m4a',
@@ -172,20 +172,20 @@ describe('VoiceMemoJob Integration', () => {
     mockTranscriptionService.transcribe
       .mockResolvedValueOnce({
         success: true,
-        text: 'First memo',
+        text: 'TODO: First task',
       })
       .mockResolvedValueOnce({
         success: true,
-        text: 'Second memo',
+        text: 'NOTE: Second note',
       });
     mockOrganizationService.organize
       .mockResolvedValueOnce({
         success: true,
-        items: [{ type: 'TODO', content: 'First task', priority: 'high', category: 'work' }],
+        items: [{ type: 'TODO', content: 'TODO: First task', priority: 'high', category: 'work' }],
       })
       .mockResolvedValueOnce({
         success: true,
-        items: [{ type: 'NOTE', content: 'Second note', category: 'personal' }],
+        items: [{ type: 'NOTE', content: 'NOTE: Second note', category: 'personal' }],
       });
     mockNotionSyncService.sync.mockResolvedValue({
       success: true,
@@ -237,7 +237,7 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/fail.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Some text',
+      text: 'TODO: Some task',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: false,
@@ -264,7 +264,7 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/fail.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Some text',
+      text: 'TODO: Some task',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -296,7 +296,7 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/partial.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Multiple items',
+      text: 'TODO: Multiple items',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -328,7 +328,7 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/empty.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Some text',
+      text: 'TODO: Some task',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -369,7 +369,7 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/fail.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Some text',
+      text: 'TODO: Some task',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -512,7 +512,7 @@ describe('VoiceMemoJob Integration', () => {
     );
   }, 10000);
 
-  it('should not detect non-journal entries as journals', async () => {
+  it('should route TODO prefix to organization, not journal', async () => {
     const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
     const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
     const mockOrganizationService = (OrganizationService as any).mock.results[0].value;
@@ -523,7 +523,7 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Remember to buy groceries and check my journal later',
+      text: 'TODO: Buy groceries and check my journal later',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,

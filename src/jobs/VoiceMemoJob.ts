@@ -86,8 +86,10 @@ export class VoiceMemoJob implements Job {
       // Parse recording time from filename, fallback to file creation time
       const recordedAt = parseVoiceMemoTimestamp(filename) ?? (await stat(filePath)).birthtime;
 
-      // Check if this is a journal entry
-      if (this.isJournalEntry(transcriptionResult.text)) {
+      // Route based on prefix: TODO/NOTE → organization, everything else → journal
+      const intent = this.detectIntent(transcriptionResult.text);
+
+      if (intent === 'JOURNAL') {
         await this.processJournalEntry(filePath, transcriptionResult.text, recordedAt, logger);
       } else {
         await this.processTodoNoteEntry(transcriptionResult.text, filename, recordedAt, config, logger);
@@ -110,12 +112,28 @@ export class VoiceMemoJob implements Job {
     }
   }
 
-  private isJournalEntry(transcript: string): boolean {
-    return transcript.trim().toLowerCase().startsWith('journal');
+  private detectIntent(transcript: string): 'TODO' | 'NOTE' | 'JOURNAL' {
+    const text = transcript.trim();
+
+    // Check for TODO prefix: "todo:", "to do:", "to-do:", "todo,"
+    if (/^to[\s-]?do[,:.\s]/i.test(text)) {
+      return 'TODO';
+    }
+
+    // Check for NOTE prefix: "note:", "note,"
+    if (/^note[,:.\s]/i.test(text)) {
+      return 'NOTE';
+    }
+
+    // Everything else → journal (including explicit "journal" prefix)
+    return 'JOURNAL';
   }
 
-  private stripJournalKeyword(transcript: string): string {
-    return transcript.trim().replace(/^journal[,.:!?\s]*/i, '').trim();
+  private stripPrefixKeyword(transcript: string): string {
+    return transcript
+      .trim()
+      .replace(/^(to[\s-]?do|note|journal)[,.:!?\s]*/i, '')
+      .trim();
   }
 
   private async processJournalEntry(
@@ -127,7 +145,7 @@ export class VoiceMemoJob implements Job {
     const filename = filePath.split('/').pop() || filePath;
     logger.info(`Detected journal entry in ${filename}`);
 
-    const cleanedTranscript = this.stripJournalKeyword(transcript);
+    const cleanedTranscript = this.stripPrefixKeyword(transcript);
 
     const formatResult = await this.journalService.format(cleanedTranscript, logger);
     if (!formatResult.success) {

@@ -62,6 +62,11 @@ export class NotionSyncService {
   }
 
   private validateItem(item: OrganizationItem, logger: Logger): boolean {
+    if (!item.title) {
+      logger.warn(`Missing title for ${item.type}, skipping`);
+      return false;
+    }
+
     if (item.type === 'TODO') {
       if (!this.schema.priorities.includes(item.priority)) {
         logger.warn(`Invalid priority '${item.priority}' for TODO '${item.title}', skipping`);

@@ -127,7 +127,7 @@ describe('TranscriptionService', () => {
     const callArgs = (global.fetch as any).mock.calls[0];
     expect(callArgs[0]).toContain('generativelanguage.googleapis.com');
     const body = JSON.parse(callArgs[1].body);
-    expect(body.contents[0].parts[0].inline_data.mime_type).toBe('audio/mp4');
+    expect(body.contents[0].parts[1].inline_data.mime_type).toBe('audio/mp4');
   });
 
   it('should use correct mime type for wav', async () => {
@@ -151,7 +151,7 @@ describe('TranscriptionService', () => {
 
     const callArgs = (global.fetch as any).mock.calls[0];
     const body = JSON.parse(callArgs[1].body);
-    expect(body.contents[0].parts[0].inline_data.mime_type).toBe('audio/wav');
+    expect(body.contents[0].parts[1].inline_data.mime_type).toBe('audio/wav');
   });
 
   it('should handle missing transcription text', async () => {

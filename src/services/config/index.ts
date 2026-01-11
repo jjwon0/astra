@@ -6,6 +6,8 @@ import { homedir } from 'os';
 
 dotenv.config();
 
+export const GEMINI_MODEL = 'gemini-3-flash-preview';
+
 export interface NotionSchema {
   todoDatabaseId: string;
   notesDatabaseId: string;

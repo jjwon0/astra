@@ -1,4 +1,4 @@
-import { NotionSchema } from '../config';
+import { NotionSchema, GEMINI_MODEL } from '../config';
 import { Logger } from '../../utils/logger';
 
 export interface OrganizationItem {
@@ -39,7 +39,7 @@ export class OrganizationService {
 
         const prompt = this.buildPrompt(transcript, schema);
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${this.apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${this.apiKey}`,
           {
             method: 'POST',
             headers: {

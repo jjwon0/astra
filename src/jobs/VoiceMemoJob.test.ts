@@ -567,4 +567,94 @@ describe('VoiceMemoJob Integration', () => {
 
     expect(mockJournalService.format).toHaveBeenCalledWith('Today was productive.', mockLogger);
   }, 10000);
+
+  it('should route non-prefixed text to journal by default', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockOrganizationService = (OrganizationService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockJournalNotionService = (JournalNotionService as any).mock.results[0].value;
+    const mockArchiveService = (ArchiveService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'Saw a really cool temple today in Chaozhou',
+    });
+    mockJournalService.format.mockResolvedValue({
+      success: true,
+      formattedText: 'Saw a really cool temple today in Chaozhou.',
+    });
+    mockJournalNotionService.syncEntry.mockResolvedValue({
+      success: true,
+      pageId: 'page-123',
+      isNewPage: true,
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockJournalService.format).toHaveBeenCalled();
+    expect(mockOrganizationService.organize).not.toHaveBeenCalled();
+    expect(mockArchiveService.archive).toHaveBeenCalledWith('/voice_memos/memo.m4a');
+  }, 10000);
+
+  it('should detect "to do" with space as TODO', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockOrganizationService = (OrganizationService as any).mock.results[0].value;
+    const mockNotionSyncService = (NotionSyncService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockArchiveService = (ArchiveService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'to do, buy milk tomorrow',
+    });
+    mockOrganizationService.organize.mockResolvedValue({
+      success: true,
+      items: [{ type: 'TODO', content: 'buy milk', priority: 'medium', category: 'personal' }],
+    });
+    mockNotionSyncService.sync.mockResolvedValue({
+      success: true,
+      itemsCreated: 1,
+      itemsFailed: 0,
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockOrganizationService.organize).toHaveBeenCalled();
+    expect(mockJournalService.format).not.toHaveBeenCalled();
+    expect(mockArchiveService.archive).toHaveBeenCalledWith('/voice_memos/memo.m4a');
+  }, 10000);
+
+  it('should detect NOTE prefix and route to organization', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockOrganizationService = (OrganizationService as any).mock.results[0].value;
+    const mockNotionSyncService = (NotionSyncService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockArchiveService = (ArchiveService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'NOTE: interesting architecture pattern I noticed',
+    });
+    mockOrganizationService.organize.mockResolvedValue({
+      success: true,
+      items: [{ type: 'NOTE', content: 'architecture pattern', category: 'ideas' }],
+    });
+    mockNotionSyncService.sync.mockResolvedValue({
+      success: true,
+      itemsCreated: 1,
+      itemsFailed: 0,
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockOrganizationService.organize).toHaveBeenCalled();
+    expect(mockJournalService.format).not.toHaveBeenCalled();
+    expect(mockArchiveService.archive).toHaveBeenCalledWith('/voice_memos/memo.m4a');
+  }, 10000);
 });

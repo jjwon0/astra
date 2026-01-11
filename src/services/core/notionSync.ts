@@ -21,7 +21,12 @@ export class NotionSyncService {
     this.maxRetries = maxRetries;
   }
 
-  async sync(items: OrganizationItem[], filename: string, logger: Logger): Promise<SyncResult> {
+  async sync(
+    items: OrganizationItem[],
+    filename: string,
+    recordedAt: Date,
+    logger: Logger
+  ): Promise<SyncResult> {
     const result: SyncResult = {
       itemsCreated: 0,
       itemsFailed: 0,
@@ -41,9 +46,9 @@ export class NotionSyncService {
         }
 
         if (item.type === 'TODO') {
-          await this.createTodo(item, filename, logger);
+          await this.createTodo(item, filename, recordedAt, logger);
         } else {
-          await this.createNote(item, filename, logger);
+          await this.createNote(item, filename, recordedAt, logger);
         }
 
         result.itemsCreated++;
@@ -84,6 +89,7 @@ export class NotionSyncService {
   private async createTodo(
     item: OrganizationItem,
     filename: string,
+    recordedAt: Date,
     logger: Logger
   ): Promise<void> {
     const backoffDelays = [1000, 5000, 30000];
@@ -110,7 +116,7 @@ export class NotionSyncService {
               select: { name: 'not started' },
             },
             created_date: {
-              date: { start: new Date().toISOString().split('T')[0] },
+              date: { start: this.formatDateISO(recordedAt) },
             },
             source: {
               rich_text: [{ text: { content: filename } }],
@@ -136,6 +142,7 @@ export class NotionSyncService {
   private async createNote(
     item: OrganizationItem,
     filename: string,
+    recordedAt: Date,
     logger: Logger
   ): Promise<void> {
     const backoffDelays = [1000, 5000, 30000];
@@ -159,7 +166,7 @@ export class NotionSyncService {
               select: { name: item.category || 'general' },
             },
             created_date: {
-              date: { start: new Date().toISOString().split('T')[0] },
+              date: { start: this.formatDateISO(recordedAt) },
             },
             source: {
               rich_text: [{ text: { content: filename } }],
@@ -184,5 +191,12 @@ export class NotionSyncService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private formatDateISO(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

@@ -19,6 +19,7 @@ describe('NotionSyncService', () => {
   let notionSyncService: NotionSyncService;
   let logger: Logger;
   let mockSchema: NotionSchema;
+  const testRecordedAt = new Date('2026-01-10T14:30:00');
 
   beforeEach(() => {
     mockCreate.mockClear();
@@ -51,7 +52,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(1);
     expect(result.itemsFailed).toBe(0);
@@ -82,7 +83,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(1);
     expect(result.itemsFailed).toBe(0);
@@ -117,7 +118,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(2);
     expect(result.itemsFailed).toBe(0);
@@ -133,7 +134,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(0);
     expect(result.itemsFailed).toBe(1);
@@ -153,7 +154,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(0);
     expect(result.itemsFailed).toBe(1);
@@ -171,7 +172,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(0);
     expect(result.itemsFailed).toBe(1);
@@ -198,7 +199,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(1);
     expect(result.itemsFailed).toBe(0);
@@ -229,7 +230,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(1);
     expect(result.itemsFailed).toBe(1);
@@ -245,7 +246,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(1);
     const callArgs = mockCreate.mock.calls[0];
@@ -262,7 +263,7 @@ describe('NotionSyncService', () => {
       },
     ];
 
-    const result = await notionSyncService.sync(items, 'voice_memo.m4a', logger);
+    const result = await notionSyncService.sync(items, 'voice_memo.m4a', testRecordedAt, logger);
 
     expect(result.itemsCreated).toBe(1);
     const callArgs = mockCreate.mock.calls[0];

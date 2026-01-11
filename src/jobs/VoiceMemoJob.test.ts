@@ -152,6 +152,7 @@ describe('VoiceMemoJob Integration', () => {
         }),
       ]),
       'memo1.m4a',
+      expect.any(Date),
       mockLogger
     );
     expect(mockArchiveService.archive).toHaveBeenCalledWith('/voice_memos/memo1.m4a');

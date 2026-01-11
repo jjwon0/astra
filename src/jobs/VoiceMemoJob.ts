@@ -4,6 +4,7 @@ import { ConfigService } from '../services/config';
 import { StateService } from '../utils/state';
 import { Logger } from '../utils/logger';
 import { ArchiveService } from '../utils/archive';
+import { parseVoiceMemoTimestamp } from '../utils/parseVoiceMemoTimestamp';
 import { FileWatcher } from '../services/core/fileWatcher';
 import { TranscriptionService } from '../services/core/transcription';
 import { OrganizationService } from '../services/core/organization';
@@ -82,11 +83,14 @@ export class VoiceMemoJob implements Job {
         throw new Error(`Transcription failed: ${transcriptionResult.error}`);
       }
 
+      // Parse recording time from filename, fallback to file creation time
+      const recordedAt = parseVoiceMemoTimestamp(filename) ?? (await stat(filePath)).birthtime;
+
       // Check if this is a journal entry
       if (this.isJournalEntry(transcriptionResult.text)) {
-        await this.processJournalEntry(filePath, transcriptionResult.text, logger);
+        await this.processJournalEntry(filePath, transcriptionResult.text, recordedAt, logger);
       } else {
-        await this.processTodoNoteEntry(transcriptionResult.text, filename, config, logger);
+        await this.processTodoNoteEntry(transcriptionResult.text, filename, recordedAt, config, logger);
       }
 
       this.archiveService.archive(filePath);
@@ -117,6 +121,7 @@ export class VoiceMemoJob implements Job {
   private async processJournalEntry(
     filePath: string,
     transcript: string,
+    recordedAt: Date,
     logger: Logger
   ): Promise<void> {
     const filename = filePath.split('/').pop() || filePath;
@@ -128,10 +133,6 @@ export class VoiceMemoJob implements Job {
     if (!formatResult.success) {
       throw new Error(`Journal formatting failed: ${formatResult.error}`);
     }
-
-    // Get file creation time for accurate timestamp
-    const stats = await stat(filePath);
-    const recordedAt = stats.birthtime;
 
     const syncResult = await this.journalNotionService.syncEntry(
       formatResult.formattedText,
@@ -151,6 +152,7 @@ export class VoiceMemoJob implements Job {
   private async processTodoNoteEntry(
     transcript: string,
     filename: string,
+    recordedAt: Date,
     config: ConfigService,
     logger: Logger
   ): Promise<void> {
@@ -169,6 +171,7 @@ export class VoiceMemoJob implements Job {
     const syncResult = await this.notionSyncService.sync(
       organizationResult.items,
       filename,
+      recordedAt,
       logger
     );
 

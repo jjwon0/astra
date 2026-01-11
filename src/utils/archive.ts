@@ -4,10 +4,12 @@ import { join, dirname } from 'path';
 export class ArchiveService {
   private archiveDir: string;
   private failedDir: string;
+  private invalidDir: string;
 
-  constructor(archiveDir: string, failedDir: string) {
+  constructor(archiveDir: string, failedDir: string, invalidDir: string) {
     this.archiveDir = archiveDir;
     this.failedDir = failedDir;
+    this.invalidDir = invalidDir;
     this.ensureDirectories();
   }
 
@@ -18,6 +20,10 @@ export class ArchiveService {
 
     if (!existsSync(this.failedDir)) {
       mkdirSync(this.failedDir, { recursive: true });
+    }
+
+    if (!existsSync(this.invalidDir)) {
+      mkdirSync(this.invalidDir, { recursive: true });
     }
   }
 
@@ -39,5 +45,15 @@ export class ArchiveService {
     copyFileSync(filePath, failedPath);
 
     return failedPath;
+  }
+
+  archiveInvalid(filePath: string): string {
+    const filename = filePath.split('/').pop() || filePath;
+    const invalidPath = join(this.invalidDir, filename);
+
+    mkdirSync(dirname(invalidPath), { recursive: true });
+    copyFileSync(filePath, invalidPath);
+
+    return invalidPath;
   }
 }

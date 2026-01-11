@@ -17,7 +17,11 @@ describe('Simple Production Readiness', () => {
   beforeEach(() => {
     logger = new Logger(join(testLogDir, 'production-test.log'));
     state = new StateService(testStateFile);
-    archive = new ArchiveService(testLogDir, testStateFile);
+    archive = new ArchiveService(
+      join(testLogDir, 'archive'),
+      join(testLogDir, 'failed'),
+      join(testLogDir, 'invalid')
+    );
   });
 
   it('should initialize all services without errors', () => {

@@ -28,7 +28,16 @@ describe('TranscriptionService', () => {
         candidates: [
           {
             content: {
-              parts: [{ text: 'Hello world, this is a test transcription.' }],
+              parts: [
+                {
+                  text: JSON.stringify({
+                    transcription: 'Hello world, this is a test transcription.',
+                    confidence: 95,
+                    isGarbage: false,
+                    garbageReason: null,
+                  }),
+                },
+              ],
             },
           },
         ],
@@ -44,6 +53,8 @@ describe('TranscriptionService', () => {
 
     expect(result.success).toBe(true);
     expect(result.text).toBe('Hello world, this is a test transcription.');
+    expect(result.confidence).toBe(95);
+    expect(result.isGarbage).toBe(false);
     expect(logger.info).toHaveBeenCalledWith('Transcribing /path/to/audio.m4a (attempt 1/3)');
   });
 
@@ -65,7 +76,16 @@ describe('TranscriptionService', () => {
           candidates: [
             {
               content: {
-                parts: [{ text: 'Success after retry' }],
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      transcription: 'Success after retry',
+                      confidence: 90,
+                      isGarbage: false,
+                      garbageReason: null,
+                    }),
+                  },
+                ],
               },
             },
           ],
@@ -112,7 +132,16 @@ describe('TranscriptionService', () => {
         candidates: [
           {
             content: {
-              parts: [{ text: 'test' }],
+              parts: [
+                {
+                  text: JSON.stringify({
+                    transcription: 'test',
+                    confidence: 90,
+                    isGarbage: false,
+                    garbageReason: null,
+                  }),
+                },
+              ],
             },
           },
         ],
@@ -137,7 +166,16 @@ describe('TranscriptionService', () => {
         candidates: [
           {
             content: {
-              parts: [{ text: 'test' }],
+              parts: [
+                {
+                  text: JSON.stringify({
+                    transcription: 'test',
+                    confidence: 90,
+                    isGarbage: false,
+                    garbageReason: null,
+                  }),
+                },
+              ],
             },
           },
         ],
@@ -168,8 +206,42 @@ describe('TranscriptionService', () => {
     const result = await transcriptionService.transcribe('/path/to/audio.m4a', logger);
 
     expect(result.success).toBe(false);
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('No transcription text returned')
-    );
+    expect(logger.warn).toHaveBeenCalledWith('No response returned from API');
+  });
+
+  it('should detect garbage recording', async () => {
+    const mockResponse = {
+      ok: true,
+      json: async () => ({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    transcription: '',
+                    confidence: 15,
+                    isGarbage: true,
+                    garbageReason: 'background noise only',
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    };
+
+    (global.fetch as any).mockResolvedValue(mockResponse);
+
+    const { readFileSync } = await import('fs');
+    (readFileSync as any).mockReturnValue(Buffer.from('audio data'));
+
+    const result = await transcriptionService.transcribe('/path/to/audio.m4a', logger);
+
+    expect(result.success).toBe(true);
+    expect(result.isGarbage).toBe(true);
+    expect(result.confidence).toBe(15);
+    expect(result.garbageReason).toBe('background noise only');
   });
 });

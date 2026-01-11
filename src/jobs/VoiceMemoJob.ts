@@ -23,6 +23,7 @@ export class VoiceMemoJob implements Job {
   private journalService: JournalService;
   private journalNotionService: JournalNotionService;
   private archiveService: ArchiveService;
+  private garbageConfidenceThreshold: number;
 
   constructor(config: ConfigService) {
     const env = config.getEnv();
@@ -42,7 +43,8 @@ export class VoiceMemoJob implements Job {
       schema.journalDatabaseId,
       maxRetries
     );
-    this.archiveService = new ArchiveService(env.ARCHIVE_DIR, env.FAILED_DIR);
+    this.archiveService = new ArchiveService(env.ARCHIVE_DIR, env.FAILED_DIR, env.INVALID_DIR);
+    this.garbageConfidenceThreshold = parseInt(env.GARBAGE_CONFIDENCE_THRESHOLD) || 30;
   }
 
   async execute(config: ConfigService, state: StateService, logger: Logger): Promise<void> {
@@ -81,6 +83,21 @@ export class VoiceMemoJob implements Job {
 
       if (!transcriptionResult.success) {
         throw new Error(`Transcription failed: ${transcriptionResult.error}`);
+      }
+
+      // Check for garbage recording
+      if (
+        transcriptionResult.isGarbage ||
+        (transcriptionResult.confidence !== undefined &&
+          transcriptionResult.confidence < this.garbageConfidenceThreshold)
+      ) {
+        const reason =
+          transcriptionResult.garbageReason ||
+          `Low confidence (${transcriptionResult.confidence}%)`;
+        logger.info(`Detected garbage recording in ${filename}: ${reason}`);
+        this.archiveService.archiveInvalid(filePath);
+        state.markJobCompleted(this.name, filename);
+        return;
       }
 
       // Parse recording time from filename, fallback to file creation time

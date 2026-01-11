@@ -9,6 +9,7 @@ dotenv.config();
 export interface NotionSchema {
   todoDatabaseId: string;
   notesDatabaseId: string;
+  journalDatabaseId: string;
   priorities: string[];
   categories: string[];
 }
@@ -18,6 +19,7 @@ export interface ConfigEnv {
   NOTION_API_KEY: string;
   NOTION_TODO_DATABASE_ID?: string;
   NOTION_NOTES_DATABASE_ID?: string;
+  NOTION_JOURNAL_DATABASE_ID?: string;
   PARENT_PAGE_ID: string;
   VOICE_MEMOS_DIR: string;
   ARCHIVE_DIR: string;
@@ -25,6 +27,8 @@ export interface ConfigEnv {
   LOG_FILE: string;
   VOICE_MEMO_JOB_ENABLED: string;
   VOICE_MEMO_JOB_INTERVAL_MINUTES: string;
+  JOURNAL_PROCESSING_JOB_ENABLED?: string;
+  JOURNAL_PROCESSING_JOB_INTERVAL_MINUTES?: string;
   MAX_RETRIES: string;
 }
 
@@ -67,6 +71,7 @@ export class ConfigService {
       NOTION_API_KEY: process.env.NOTION_API_KEY!,
       NOTION_TODO_DATABASE_ID: process.env.NOTION_TODO_DATABASE_ID,
       NOTION_NOTES_DATABASE_ID: process.env.NOTION_NOTES_DATABASE_ID,
+      NOTION_JOURNAL_DATABASE_ID: process.env.NOTION_JOURNAL_DATABASE_ID,
       PARENT_PAGE_ID: process.env.PARENT_PAGE_ID!,
       VOICE_MEMOS_DIR: this.expandTilde(process.env.VOICE_MEMOS_DIR || '~/VoiceMemos'),
       ARCHIVE_DIR: this.expandTilde(process.env.ARCHIVE_DIR || './archive'),
@@ -74,6 +79,9 @@ export class ConfigService {
       LOG_FILE: this.expandTilde(process.env.LOG_FILE || './logs/astra.log'),
       VOICE_MEMO_JOB_ENABLED: process.env.VOICE_MEMO_JOB_ENABLED || 'true',
       VOICE_MEMO_JOB_INTERVAL_MINUTES: process.env.VOICE_MEMO_JOB_INTERVAL_MINUTES || '5',
+      JOURNAL_PROCESSING_JOB_ENABLED: process.env.JOURNAL_PROCESSING_JOB_ENABLED || 'false',
+      JOURNAL_PROCESSING_JOB_INTERVAL_MINUTES:
+        process.env.JOURNAL_PROCESSING_JOB_INTERVAL_MINUTES || '60',
       MAX_RETRIES: process.env.MAX_RETRIES || '3',
     };
   }
@@ -86,12 +94,14 @@ export class ConfigService {
   private async setupNotionDatabases(): Promise<void> {
     const todoDbId = this.env.NOTION_TODO_DATABASE_ID;
     const notesDbId = this.env.NOTION_NOTES_DATABASE_ID;
+    const journalDbId = this.env.NOTION_JOURNAL_DATABASE_ID;
     const parentPageId = this.env.PARENT_PAGE_ID;
 
     const needsTodoDb = !todoDbId;
     const needsNotesDb = !notesDbId;
+    const needsJournalDb = !journalDbId;
 
-    if (!needsTodoDb && !needsNotesDb) {
+    if (!needsTodoDb && !needsNotesDb && !needsJournalDb) {
       return;
     }
 
@@ -106,6 +116,12 @@ export class ConfigService {
         const db = await this.createNotesDatabase(parentPageId);
         this.env.NOTION_NOTES_DATABASE_ID = db.id;
         console.log(`Created Notes database: ${db.id}`);
+      }
+
+      if (needsJournalDb) {
+        const db = await this.createJournalDatabase(parentPageId);
+        this.env.NOTION_JOURNAL_DATABASE_ID = db.id;
+        console.log(`Created Journal database: ${db.id}`);
       }
 
       await this.updateEnvFile();
@@ -169,11 +185,24 @@ export class ConfigService {
     });
   }
 
+  private async createJournalDatabase(parentPageId: string): Promise<any> {
+    return await this.notion.databases.create({
+      parent: { type: 'page_id', page_id: parentPageId },
+      title: [{ type: 'text', text: { content: 'Journal' } }],
+      properties: {
+        title: { title: {} },
+        date: { date: {} },
+        processed: { checkbox: {} },
+      },
+    });
+  }
+
   private async fetchSchema(): Promise<void> {
     const todoDbId = this.env.NOTION_TODO_DATABASE_ID;
     const notesDbId = this.env.NOTION_NOTES_DATABASE_ID;
+    const journalDbId = this.env.NOTION_JOURNAL_DATABASE_ID;
 
-    if (!todoDbId || !notesDbId) {
+    if (!todoDbId || !notesDbId || !journalDbId) {
       throw new Error('Database IDs not available. Please restart after database setup.');
     }
 
@@ -189,6 +218,7 @@ export class ConfigService {
       this.schema = {
         todoDatabaseId: todoDbId,
         notesDatabaseId: notesDbId,
+        journalDatabaseId: journalDbId,
         priorities,
         categories,
       };
@@ -219,7 +249,8 @@ export class ConfigService {
     const updatedLines = lines.filter((line) => {
       return (
         !line.startsWith('NOTION_TODO_DATABASE_ID=') &&
-        !line.startsWith('NOTION_NOTES_DATABASE_ID=')
+        !line.startsWith('NOTION_NOTES_DATABASE_ID=') &&
+        !line.startsWith('NOTION_JOURNAL_DATABASE_ID=')
       );
     });
 
@@ -229,6 +260,10 @@ export class ConfigService {
 
     if (this.env.NOTION_NOTES_DATABASE_ID) {
       updatedLines.push(`NOTION_NOTES_DATABASE_ID=${this.env.NOTION_NOTES_DATABASE_ID}`);
+    }
+
+    if (this.env.NOTION_JOURNAL_DATABASE_ID) {
+      updatedLines.push(`NOTION_JOURNAL_DATABASE_ID=${this.env.NOTION_JOURNAL_DATABASE_ID}`);
     }
 
     writeFileSync(envPath, updatedLines.join('\n'));

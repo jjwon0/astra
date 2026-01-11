@@ -27,6 +27,7 @@ describe('ConfigService', () => {
     process.env.PARENT_PAGE_ID = 'test_parent_page_id';
     process.env.NOTION_TODO_DATABASE_ID = 'test_todo_db_id';
     process.env.NOTION_NOTES_DATABASE_ID = 'test_notes_db_id';
+    process.env.NOTION_JOURNAL_DATABASE_ID = 'test_journal_db_id';
 
     mockNotion = {
       databases: {
@@ -103,6 +104,7 @@ describe('ConfigService', () => {
 
       expect(schema.todoDatabaseId).toBe('test_todo_db_id');
       expect(schema.notesDatabaseId).toBe('test_notes_db_id');
+      expect(schema.journalDatabaseId).toBe('test_journal_db_id');
       expect(schema.priorities).toEqual(['asap', 'soon']);
       expect(schema.categories).toEqual(['project idea', 'general']);
     });
@@ -110,13 +112,16 @@ describe('ConfigService', () => {
     it('should create databases when IDs are missing', async () => {
       delete process.env.NOTION_TODO_DATABASE_ID;
       delete process.env.NOTION_NOTES_DATABASE_ID;
+      delete process.env.NOTION_JOURNAL_DATABASE_ID;
 
       const mockTodoDb = { id: 'new_todo_db_id' };
       const mockNotesDb = { id: 'new_notes_db_id' };
+      const mockJournalDb = { id: 'new_journal_db_id' };
 
       mockNotion.databases.create
         .mockResolvedValueOnce(mockTodoDb)
-        .mockResolvedValueOnce(mockNotesDb);
+        .mockResolvedValueOnce(mockNotesDb)
+        .mockResolvedValueOnce(mockJournalDb);
 
       mockNotion.databases.retrieve.mockImplementation(({ database_id }: any) => {
         if (database_id === 'new_todo_db_id') {
@@ -147,12 +152,13 @@ describe('ConfigService', () => {
       const service = new ConfigService();
       await service.initialize();
 
-      expect(mockNotion.databases.create).toHaveBeenCalledTimes(2);
+      expect(mockNotion.databases.create).toHaveBeenCalledTimes(3);
       expect(mockNotion.databases.retrieve).toHaveBeenCalledTimes(2);
 
       const schema = service.getSchema();
       expect(schema.todoDatabaseId).toBe('new_todo_db_id');
       expect(schema.notesDatabaseId).toBe('new_notes_db_id');
+      expect(schema.journalDatabaseId).toBe('new_journal_db_id');
     });
   });
 

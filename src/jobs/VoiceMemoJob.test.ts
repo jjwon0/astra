@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { VoiceMemoJob } from './VoiceMemoJob';
 
+vi.mock('fs/promises', () => ({
+  stat: vi.fn().mockResolvedValue({
+    birthtime: new Date('2026-01-10T14:30:00'),
+  }),
+}));
+
 vi.mock('../services/core/fileWatcher', () => ({
   FileWatcher: vi.fn().mockImplementation(() => ({
     watch: vi.fn(),
@@ -25,6 +31,18 @@ vi.mock('../services/core/notionSync', () => ({
   })),
 }));
 
+vi.mock('../services/core/journal', () => ({
+  JournalService: vi.fn().mockImplementation(() => ({
+    format: vi.fn(),
+  })),
+}));
+
+vi.mock('../services/core/journalNotionSync', () => ({
+  JournalNotionService: vi.fn().mockImplementation(() => ({
+    syncEntry: vi.fn(),
+  })),
+}));
+
 vi.mock('../utils/archive', () => ({
   ArchiveService: vi.fn().mockImplementation(() => ({
     archive: vi.fn(),
@@ -36,6 +54,8 @@ import { FileWatcher } from '../services/core/fileWatcher';
 import { TranscriptionService } from '../services/core/transcription';
 import { OrganizationService } from '../services/core/organization';
 import { NotionSyncService } from '../services/core/notionSync';
+import { JournalService } from '../services/core/journal';
+import { JournalNotionService } from '../services/core/journalNotionSync';
 import { ArchiveService } from '../utils/archive';
 
 describe('VoiceMemoJob Integration', () => {
@@ -74,6 +94,7 @@ describe('VoiceMemoJob Integration', () => {
       getSchema: vi.fn().mockReturnValue({
         todoDatabaseId: 'todo-db-id',
         noteDatabaseId: 'note-db-id',
+        journalDatabaseId: 'journal-db-id',
         priorities: ['high', 'medium', 'low'],
         categories: ['work', 'personal', 'ideas'],
       }),
@@ -391,5 +412,158 @@ describe('VoiceMemoJob Integration', () => {
       'Failed to process fail.m4a: Transcription failed: API error'
     );
     expect(mockLogger.error).toHaveBeenCalledWith('Failed to archive fail.m4a: Archive failed');
+  }, 10000);
+
+  it('should detect and process journal entries', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockJournalNotionService = (JournalNotionService as any).mock.results[0].value;
+    const mockOrganizationService = (OrganizationService as any).mock.results[0].value;
+    const mockArchiveService = (ArchiveService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/journal.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'Journal, today I had a great day working on the new feature.',
+    });
+    mockJournalService.format.mockResolvedValue({
+      success: true,
+      formattedText: 'Today I had a great day working on the new feature.',
+    });
+    mockJournalNotionService.syncEntry.mockResolvedValue({
+      success: true,
+      pageId: 'journal-page-123',
+      isNewPage: true,
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockJournalService.format).toHaveBeenCalledWith(
+      'today I had a great day working on the new feature.',
+      mockLogger
+    );
+    expect(mockJournalNotionService.syncEntry).toHaveBeenCalledWith(
+      'Today I had a great day working on the new feature.',
+      expect.any(Date),
+      mockLogger
+    );
+    expect(mockOrganizationService.organize).not.toHaveBeenCalled();
+    expect(mockArchiveService.archive).toHaveBeenCalledWith('/voice_memos/journal.m4a');
+    expect(mockState.markJobCompleted).toHaveBeenCalledWith('voiceMemo', 'journal.m4a');
+    expect(mockLogger.info).toHaveBeenCalledWith('Detected journal entry in journal.m4a');
+  }, 10000);
+
+  it('should handle journal formatting failure', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockArchiveService = (ArchiveService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/journal.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'Journal, some content here',
+    });
+    mockJournalService.format.mockResolvedValue({
+      success: false,
+      error: 'Formatting failed',
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockArchiveService.archiveFailed).toHaveBeenCalledWith('/voice_memos/journal.m4a');
+    expect(mockState.markJobFailed).toHaveBeenCalledWith(
+      'voiceMemo',
+      'journal.m4a',
+      'Journal formatting failed: Formatting failed'
+    );
+  }, 10000);
+
+  it('should handle journal sync failure', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockJournalNotionService = (JournalNotionService as any).mock.results[0].value;
+    const mockArchiveService = (ArchiveService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/journal.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'Journal, some content',
+    });
+    mockJournalService.format.mockResolvedValue({
+      success: true,
+      formattedText: 'Some content',
+    });
+    mockJournalNotionService.syncEntry.mockResolvedValue({
+      success: false,
+      error: 'Sync failed',
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockArchiveService.archiveFailed).toHaveBeenCalledWith('/voice_memos/journal.m4a');
+    expect(mockState.markJobFailed).toHaveBeenCalledWith(
+      'voiceMemo',
+      'journal.m4a',
+      'Journal sync failed: Sync failed'
+    );
+  }, 10000);
+
+  it('should not detect non-journal entries as journals', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockOrganizationService = (OrganizationService as any).mock.results[0].value;
+    const mockNotionSyncService = (NotionSyncService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockArchiveService = (ArchiveService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'Remember to buy groceries and check my journal later',
+    });
+    mockOrganizationService.organize.mockResolvedValue({
+      success: true,
+      items: [{ type: 'TODO', content: 'Buy groceries', priority: 'medium', category: 'personal' }],
+    });
+    mockNotionSyncService.sync.mockResolvedValue({
+      success: true,
+      itemsCreated: 1,
+      itemsFailed: 0,
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockJournalService.format).not.toHaveBeenCalled();
+    expect(mockOrganizationService.organize).toHaveBeenCalled();
+    expect(mockArchiveService.archive).toHaveBeenCalledWith('/voice_memos/memo.m4a');
+  }, 10000);
+
+  it('should strip journal keyword with various punctuation', async () => {
+    const mockFileWatcher = (FileWatcher as any).mock.results[0].value;
+    const mockTranscriptionService = (TranscriptionService as any).mock.results[0].value;
+    const mockJournalService = (JournalService as any).mock.results[0].value;
+    const mockJournalNotionService = (JournalNotionService as any).mock.results[0].value;
+
+    mockFileWatcher.watch.mockResolvedValue(['/voice_memos/journal.m4a']);
+    mockTranscriptionService.transcribe.mockResolvedValue({
+      success: true,
+      text: 'JOURNAL: Today was productive.',
+    });
+    mockJournalService.format.mockResolvedValue({
+      success: true,
+      formattedText: 'Today was productive.',
+    });
+    mockJournalNotionService.syncEntry.mockResolvedValue({
+      success: true,
+      pageId: 'page-123',
+      isNewPage: true,
+    });
+
+    await job.execute(mockConfig, mockState, mockLogger);
+
+    expect(mockJournalService.format).toHaveBeenCalledWith('Today was productive.', mockLogger);
   }, 10000);
 });

@@ -1,3 +1,4 @@
+import { stat } from 'fs/promises';
 import { Job } from '../scheduler/Job';
 import { ConfigService } from '../services/config';
 import { StateService } from '../utils/state';
@@ -7,6 +8,8 @@ import { FileWatcher } from '../services/core/fileWatcher';
 import { TranscriptionService } from '../services/core/transcription';
 import { OrganizationService } from '../services/core/organization';
 import { NotionSyncService } from '../services/core/notionSync';
+import { JournalService } from '../services/core/journal';
+import { JournalNotionService } from '../services/core/journalNotionSync';
 
 export class VoiceMemoJob implements Job {
   name = 'voiceMemo';
@@ -16,6 +19,8 @@ export class VoiceMemoJob implements Job {
   private transcriptionService: TranscriptionService;
   private organizationService: OrganizationService;
   private notionSyncService: NotionSyncService;
+  private journalService: JournalService;
+  private journalNotionService: JournalNotionService;
   private archiveService: ArchiveService;
 
   constructor(config: ConfigService) {
@@ -24,20 +29,17 @@ export class VoiceMemoJob implements Job {
     this.enabled = env.VOICE_MEMO_JOB_ENABLED === 'true';
 
     const schema = config.getSchema();
+    const maxRetries = parseInt(env.MAX_RETRIES);
 
     this.fileWatcher = new FileWatcher(env.VOICE_MEMOS_DIR);
-    this.transcriptionService = new TranscriptionService(
-      env.GEMINI_API_KEY,
-      parseInt(env.MAX_RETRIES)
-    );
-    this.organizationService = new OrganizationService(
-      env.GEMINI_API_KEY,
-      parseInt(env.MAX_RETRIES)
-    );
-    this.notionSyncService = new NotionSyncService(
+    this.transcriptionService = new TranscriptionService(env.GEMINI_API_KEY, maxRetries);
+    this.organizationService = new OrganizationService(env.GEMINI_API_KEY, maxRetries);
+    this.notionSyncService = new NotionSyncService(env.NOTION_API_KEY, schema, maxRetries);
+    this.journalService = new JournalService(env.GEMINI_API_KEY, maxRetries);
+    this.journalNotionService = new JournalNotionService(
       env.NOTION_API_KEY,
-      schema,
-      parseInt(env.MAX_RETRIES)
+      schema.journalDatabaseId,
+      maxRetries
     );
     this.archiveService = new ArchiveService(env.ARCHIVE_DIR, env.FAILED_DIR);
   }
@@ -80,33 +82,11 @@ export class VoiceMemoJob implements Job {
         throw new Error(`Transcription failed: ${transcriptionResult.error}`);
       }
 
-      const schema = config.getSchema();
-      const organizationResult = await this.organizationService.organize(
-        transcriptionResult.text,
-        schema,
-        logger
-      );
-
-      if (!organizationResult.success) {
-        throw new Error(`Organization failed: ${organizationResult.error}`);
-      }
-
-      if (organizationResult.items.length === 0) {
-        logger.info(`No items found in ${filename}, skipping sync`);
+      // Check if this is a journal entry
+      if (this.isJournalEntry(transcriptionResult.text)) {
+        await this.processJournalEntry(filePath, transcriptionResult.text, logger);
       } else {
-        const syncResult = await this.notionSyncService.sync(
-          organizationResult.items,
-          filename,
-          logger
-        );
-
-        if (!syncResult.success && syncResult.itemsFailed === syncResult.itemsCreated) {
-          throw new Error(`Notion sync failed completely`);
-        }
-
-        if (syncResult.itemsFailed > 0) {
-          logger.warn(`Sync completed with ${syncResult.itemsFailed} failure(s)`);
-        }
+        await this.processTodoNoteEntry(transcriptionResult.text, filename, config, logger);
       }
 
       this.archiveService.archive(filePath);
@@ -123,6 +103,81 @@ export class VoiceMemoJob implements Job {
           `Failed to archive ${filename}: ${archiveError.message || String(archiveError)}`
         );
       }
+    }
+  }
+
+  private isJournalEntry(transcript: string): boolean {
+    return transcript.trim().toLowerCase().startsWith('journal');
+  }
+
+  private stripJournalKeyword(transcript: string): string {
+    return transcript.trim().replace(/^journal[,.:!?\s]*/i, '').trim();
+  }
+
+  private async processJournalEntry(
+    filePath: string,
+    transcript: string,
+    logger: Logger
+  ): Promise<void> {
+    const filename = filePath.split('/').pop() || filePath;
+    logger.info(`Detected journal entry in ${filename}`);
+
+    const cleanedTranscript = this.stripJournalKeyword(transcript);
+
+    const formatResult = await this.journalService.format(cleanedTranscript, logger);
+    if (!formatResult.success) {
+      throw new Error(`Journal formatting failed: ${formatResult.error}`);
+    }
+
+    // Get file creation time for accurate timestamp
+    const stats = await stat(filePath);
+    const recordedAt = stats.birthtime;
+
+    const syncResult = await this.journalNotionService.syncEntry(
+      formatResult.formattedText,
+      recordedAt,
+      logger
+    );
+
+    if (!syncResult.success) {
+      throw new Error(`Journal sync failed: ${syncResult.error}`);
+    }
+
+    logger.info(
+      `Journal entry ${syncResult.isNewPage ? 'created' : 'appended'} to page ${syncResult.pageId}`
+    );
+  }
+
+  private async processTodoNoteEntry(
+    transcript: string,
+    filename: string,
+    config: ConfigService,
+    logger: Logger
+  ): Promise<void> {
+    const schema = config.getSchema();
+    const organizationResult = await this.organizationService.organize(transcript, schema, logger);
+
+    if (!organizationResult.success) {
+      throw new Error(`Organization failed: ${organizationResult.error}`);
+    }
+
+    if (organizationResult.items.length === 0) {
+      logger.info(`No items found in ${filename}, skipping sync`);
+      return;
+    }
+
+    const syncResult = await this.notionSyncService.sync(
+      organizationResult.items,
+      filename,
+      logger
+    );
+
+    if (!syncResult.success && syncResult.itemsFailed === syncResult.itemsCreated) {
+      throw new Error(`Notion sync failed completely`);
+    }
+
+    if (syncResult.itemsFailed > 0) {
+      logger.warn(`Sync completed with ${syncResult.itemsFailed} failure(s)`);
     }
   }
 }

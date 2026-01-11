@@ -39,7 +39,7 @@ export class OrganizationService {
 
         const prompt = this.buildPrompt(transcript, schema);
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${this.apiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${this.apiKey}`,
           {
             method: 'POST',
             headers: {
@@ -94,8 +94,15 @@ export class OrganizationService {
           continue;
         }
 
-        logger.info(`Organization successful: ${parsed.items.length} item(s) found`);
-        return { items: parsed.items, success: true };
+        // Always include the original transcript for context
+        const itemsWithTranscript = parsed.items.map((item: OrganizationItem) => ({
+          ...item,
+          description: item.type === 'TODO' ? transcript : item.description,
+          content: item.type === 'NOTE' ? transcript : item.content,
+        }));
+
+        logger.info(`Organization successful: ${itemsWithTranscript.length} item(s) found`);
+        return { items: itemsWithTranscript, success: true };
       } catch (error: any) {
         lastError = error.message || String(error);
         logger.warn(`Organization attempt ${attempt + 1} failed: ${lastError}`);

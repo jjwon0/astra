@@ -56,7 +56,7 @@ describe('OrganizationService', () => {
     expect(result.items).toHaveLength(1);
     expect(result.items[0].type).toBe('TODO');
     expect(result.items[0].title).toBe('Buy milk');
-    expect(result.items[0].description).toBe('Get 2% milk');
+    expect(result.items[0].description).toBe('TODO: buy milk. Get 2% milk');
     expect(logger.info).toHaveBeenCalledWith('Organizing transcript (attempt 1/3)');
   });
 

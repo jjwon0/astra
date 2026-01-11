@@ -76,9 +76,7 @@ export class TranscriptionService {
           continue;
         }
 
-        logger.info(
-          `Transcription successful: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`
-        );
+        logger.info(`Transcription successful:\n${text}`);
         return { text, success: true };
       } catch (error: any) {
         lastError = error.message || String(error);

@@ -1,0 +1,16 @@
+{
+  "name": "astra-scheduler",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "test": "vitest --run",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage --run"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.0.0",
+    "dotenv": "^16.0.0"
+  }
+}

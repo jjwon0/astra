@@ -1,15 +1,21 @@
+# Dependencies
 node_modules
+
+# Build outputs
 dist
+packages/*/dist
 coverage
+
+# Config
 *.config.ts
 .env
 
-# Runtime
+# Runtime (scheduler)
 logs/
 archive/
 failed/
+invalid/
 state.json
 
 # IDE/Tools
 .claude/
-invalid/

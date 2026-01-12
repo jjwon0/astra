@@ -8,7 +8,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/Users/jjwon/.bun/bin/bun</string>
-        <string>/Users/jjwon/repos/astra/src/index.ts</string>
+        <string>/Users/jjwon/repos/astra/packages/astra-scheduler/src/index.ts</string>
     </array>
 
     <key>WorkingDirectory</key>

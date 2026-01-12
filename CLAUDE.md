@@ -1,17 +1,36 @@
 # Astra - Development Guide
 
+## Monorepo Structure
+
+This is a Bun monorepo with two packages:
+
+```
+astra/
+├── packages/
+│   ├── astra-scheduler/     # Background job scheduler
+│   │   ├── src/             # Scheduler source code
+│   │   └── tests/           # Integration tests
+│   └── astra-webapp/        # Val Town frontend
+│       └── vals/            # Val Town HTTP handlers
+├── docs/                    # Project documentation
+├── scripts/                 # Daemon scripts
+├── logs/                    # Runtime logs (git-ignored)
+└── package.json             # Workspace root
+```
+
 ## Runtime
 
-This project uses **Bun** as the runtime. TypeScript files are executed directly without a build step.
+This project uses **Bun** as the runtime with Bun workspaces.
 
 ```bash
-# Run the application
+# Run scheduler
 bun run dev
 
-# Run tests (Vitest)
+# Run webapp
+bun run dev:webapp
+
+# Run all tests
 bun run test
-bun run test:watch
-bun run test:coverage
 
 # Linting and formatting
 bun run lint
@@ -20,10 +39,14 @@ bun run format
 bun run format:check
 ```
 
-## Project Structure
+## Packages
+
+### astra-scheduler
+
+Background job scheduler for processing voice memos and syncing to Notion.
 
 ```
-src/
+packages/astra-scheduler/src/
 ├── index.ts              # Main entry point
 ├── scheduler/            # Job scheduler
 │   ├── Job.ts            # Job interface
@@ -35,18 +58,39 @@ src/
 │   └── core/             # Pipeline services (transcription, organization, notionSync)
 ├── utils/                # Logger, archive, state utilities
 └── types/                # TypeScript type definitions
-
-tests/                    # Integration tests
-docs/                     # Documentation
-scripts/                  # Daemon install/uninstall scripts
 ```
+
+### astra-webapp
+
+Val Town frontend for viewing logs (and future customer-facing features).
+
+**Live URL:** https://astral.val.run/
+
+```
+packages/astra-webapp/
+├── vals/
+│   └── index.http.ts     # Main HTTP handler (Hono)
+├── .vt/                  # Val Town metadata
+├── deno.json             # Deno/Val Town config
+└── .vtignore             # Files excluded from Val Town
+```
+
+**Deployment:**
+```bash
+cd packages/astra-webapp
+vt push      # Deploy to Val Town
+vt watch     # Auto-sync on file changes
+vt browse    # Open in browser
+```
+
+See [docs/webapp.md](docs/webapp.md) for Val Town conventions and best practices.
 
 ## Key Patterns
 
-- **No Bun-specific APIs** - The codebase uses standard Node.js/Web APIs (fs, fetch, etc.) for portability
+- **No Bun-specific APIs** - The codebase uses standard Node.js/Web APIs for portability
 - **Tests colocated with source** - Unit tests are `*.test.ts` next to the files they test
-- **Integration tests separate** - Located in `tests/` directory
-- **State persistence** - `state.json` tracks processed files (git-ignored)
+- **Integration tests separate** - Located in `packages/astra-scheduler/tests/`
+- **State persistence** - `state.json` tracks processed files (git-ignored, at repo root)
 - **Logs** - Written to `logs/astra.log` with automatic rotation at 10MB
 
 ## Documentation
@@ -58,30 +102,11 @@ scripts/                  # Daemon install/uninstall scripts
 - `docs/pipeline.md` - Core pipeline services (transcription, organization, sync)
 - `docs/utilities.md` - Logger, archive, state services
 - `docs/jobs.md` - Job system and adding new jobs
-
-**What to update:**
-- New environment variables → `docs/config.md`
-- New/modified service interfaces → `docs/pipeline.md` or `docs/utilities.md`
-- New archive destinations or behaviors → `docs/utilities.md`
-- Architectural changes → `docs/architecture.md`
-
-## Architecture
-
-The scheduler supports multiple concurrent jobs. VoiceMemoJob is the current implementation:
-
-```
-JobScheduler
-    └── VoiceMemoJob (runs every 5 min)
-            ├── FileWatcher     → finds new audio files
-            ├── Transcription   → audio → text (Gemini API)
-            ├── Organization    → text → structured JSON (Gemini API)
-            ├── NotionSync      → creates pages in Notion
-            └── Archive         → moves processed files
-```
+- `docs/webapp.md` - Val Town webapp deployment and conventions
 
 ## Adding a New Job
 
-1. Create a new file in `src/jobs/` implementing the `Job` interface:
+1. Create a new file in `packages/astra-scheduler/src/jobs/` implementing the `Job` interface:
 
 ```typescript
 import type { Job } from '../scheduler/Job';
@@ -97,7 +122,7 @@ export class MyJob implements Job {
 }
 ```
 
-2. Register the job in `src/index.ts`:
+2. Register the job in `packages/astra-scheduler/src/index.ts`:
 
 ```typescript
 import { MyJob } from './jobs/MyJob';

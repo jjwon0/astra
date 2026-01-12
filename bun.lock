@@ -4,10 +4,6 @@
   "workspaces": {
     "": {
       "name": "astra",
-      "dependencies": {
-        "@notionhq/client": "^2.0.0",
-        "dotenv": "^16.0.0",
-      },
       "devDependencies": {
         "@types/node": "^22.0.0",
         "@typescript-eslint/eslint-plugin": "^8.0.0",
@@ -17,7 +13,23 @@
         "husky": "^9.0.0",
         "lint-staged": "^15.0.0",
         "prettier": "^3.0.0",
+        "typescript": "^5.0.0",
         "vitest": "^2.0.0",
+      },
+    },
+    "packages/astra-scheduler": {
+      "name": "astra-scheduler",
+      "version": "0.1.0",
+      "dependencies": {
+        "@notionhq/client": "^2.0.0",
+        "dotenv": "^16.0.0",
+      },
+    },
+    "packages/astra-webapp": {
+      "name": "astra-webapp",
+      "version": "0.1.0",
+      "dependencies": {
+        "hono": "^4.0.0",
       },
     },
   },
@@ -200,6 +212,10 @@
 
     "assertion-error": ["assertion-error@2.0.1", "", {}, "sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA=="],
 
+    "astra-scheduler": ["astra-scheduler@workspace:packages/astra-scheduler"],
+
+    "astra-webapp": ["astra-webapp@workspace:packages/astra-webapp"],
+
     "asynckit": ["asynckit@0.4.0", "", {}, "sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q=="],
 
     "balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
@@ -349,6 +365,8 @@
     "has-tostringtag": ["has-tostringtag@1.0.2", "", { "dependencies": { "has-symbols": "^1.0.3" } }, "sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw=="],
 
     "hasown": ["hasown@2.0.2", "", { "dependencies": { "function-bind": "^1.1.2" } }, "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ=="],
+
+    "hono": ["hono@4.11.3", "", {}, "sha512-PmQi306+M/ct/m5s66Hrg+adPnkD5jiO6IjA7WhWw0gSBSo1EcRegwuI1deZ+wd5pzCGynCcn2DprnE4/yEV4w=="],
 
     "human-signals": ["human-signals@5.0.0", "", {}, "sha512-AXcZb6vzzrFAUE61HnN4mpLqd/cSIwNQjtNWR0euPm6y0iqx3G4gOXaIDdtdDwZmhwe82LA6+zinmW4UBWVePQ=="],
 

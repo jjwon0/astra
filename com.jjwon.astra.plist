@@ -15,10 +15,10 @@
     <string>/Users/jjwon/repos/astra</string>
 
     <key>StandardOutPath</key>
-    <string>/Users/jjwon/repos/astra/logs/daemon-stdout.log</string>
+    <string>/Users/jjwon/.astra/logs/daemon-stdout.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/jjwon/repos/astra/logs/daemon-stderr.log</string>
+    <string>/Users/jjwon/.astra/logs/daemon-stderr.log</string>
 
     <key>KeepAlive</key>
     <true/>

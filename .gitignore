@@ -10,12 +10,6 @@ coverage
 *.config.ts
 .env
 
-# Runtime (scheduler)
-logs/
-archive/
-failed/
-invalid/
-state.json
-
 # IDE/Tools
 .claude/
+.vt/

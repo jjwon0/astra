@@ -23,12 +23,13 @@ NOTION_TODO_DATABASE_ID=<todo_db_id>
 NOTION_NOTES_DATABASE_ID=<notes_db_id>
 NOTION_JOURNAL_DATABASE_ID=<journal_db_id>
 
-# Directory Paths
+# Directory Paths (defaults to ~/.astra/)
 VOICE_MEMOS_DIR=~/Library/Mobile Documents/.../Voice Memos/
-ARCHIVE_DIR=./archive/
-FAILED_DIR=./failed/
-INVALID_DIR=./invalid/
-LOG_FILE=./logs/astra.log
+ARCHIVE_DIR=~/.astra/archive
+FAILED_DIR=~/.astra/failed
+INVALID_DIR=~/.astra/invalid
+LOG_FILE=~/.astra/logs/astra.log
+STATE_FILE=~/.astra/state.json
 
 # Job Configuration
 VOICE_MEMO_JOB_ENABLED=true

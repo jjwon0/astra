@@ -14,9 +14,10 @@ astra/
 │       └── vals/            # Val Town HTTP handlers
 ├── docs/                    # Project documentation
 ├── scripts/                 # Daemon scripts
-├── logs/                    # Runtime logs (git-ignored)
 └── package.json             # Workspace root
 ```
+
+**Runtime data** is stored in `~/.astra/` (auto-created on first run).
 
 ## Runtime
 
@@ -90,8 +91,11 @@ See [docs/webapp.md](docs/webapp.md) for Val Town conventions and best practices
 - **No Bun-specific APIs** - The codebase uses standard Node.js/Web APIs for portability
 - **Tests colocated with source** - Unit tests are `*.test.ts` next to the files they test
 - **Integration tests separate** - Located in `packages/astra-scheduler/tests/`
-- **State persistence** - `state.json` tracks processed files (git-ignored, at repo root)
-- **Logs** - Written to `logs/astra.log` with automatic rotation at 10MB
+- **Runtime data in ~/.astra/** - State, logs, and archives stored outside repo:
+  - `~/.astra/state.json` - Tracks processed files
+  - `~/.astra/logs/astra.log` - Application logs (auto-rotated at 10MB)
+  - `~/.astra/archive/` - Processed voice memos
+  - `~/.astra/failed/`, `~/.astra/invalid/` - Failed/invalid files
 
 ## Documentation
 
@@ -153,5 +157,5 @@ The config service auto-creates Notion databases on first run if they don't exis
 ./scripts/uninstall-daemon.sh
 
 # View logs
-tail -f logs/astra.log
+tail -f ~/.astra/logs/astra.log
 ```

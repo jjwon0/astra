@@ -11,8 +11,8 @@ PLIST_DEST="$HOME/Library/LaunchAgents/$PLIST_NAME"
 
 echo "Installing Astra daemon..."
 
-# Ensure logs directory exists
-mkdir -p "$PROJECT_DIR/logs"
+# Ensure ~/.astra/logs directory exists (for daemon stdout/stderr)
+mkdir -p "$HOME/.astra/logs"
 
 # Ensure LaunchAgents directory exists
 mkdir -p "$HOME/Library/LaunchAgents"
@@ -34,9 +34,9 @@ echo "Astra daemon installed and started!"
 echo ""
 echo "Useful commands:"
 echo "  Check status:  launchctl list | grep astra"
-echo "  View app logs: tail -f $PROJECT_DIR/logs/astra.log"
-echo "  View stdout:   tail -f $PROJECT_DIR/logs/daemon-stdout.log"
-echo "  View stderr:   tail -f $PROJECT_DIR/logs/daemon-stderr.log"
+echo "  View app logs: tail -f ~/.astra/logs/astra.log"
+echo "  View stdout:   tail -f ~/.astra/logs/daemon-stdout.log"
+echo "  View stderr:   tail -f ~/.astra/logs/daemon-stderr.log"
 echo "  Stop daemon:   launchctl stop com.jjwon.astra"
 echo "  Start daemon:  launchctl start com.jjwon.astra"
 echo "  Uninstall:     $SCRIPT_DIR/uninstall-daemon.sh"

@@ -28,6 +28,7 @@ export interface ConfigEnv {
   FAILED_DIR: string;
   INVALID_DIR: string;
   LOG_FILE: string;
+  STATE_FILE: string;
   VOICE_MEMO_JOB_ENABLED: string;
   VOICE_MEMO_JOB_INTERVAL_MINUTES: string;
   JOURNAL_PROCESSING_JOB_ENABLED?: string;
@@ -78,10 +79,11 @@ export class ConfigService {
       NOTION_JOURNAL_DATABASE_ID: process.env.NOTION_JOURNAL_DATABASE_ID,
       PARENT_PAGE_ID: process.env.PARENT_PAGE_ID!,
       VOICE_MEMOS_DIR: this.expandTilde(process.env.VOICE_MEMOS_DIR || '~/VoiceMemos'),
-      ARCHIVE_DIR: this.expandTilde(process.env.ARCHIVE_DIR || './archive'),
-      FAILED_DIR: this.expandTilde(process.env.FAILED_DIR || './failed'),
-      INVALID_DIR: this.expandTilde(process.env.INVALID_DIR || './invalid'),
-      LOG_FILE: this.expandTilde(process.env.LOG_FILE || './logs/astra.log'),
+      ARCHIVE_DIR: this.expandTilde(process.env.ARCHIVE_DIR || '~/.astra/archive'),
+      FAILED_DIR: this.expandTilde(process.env.FAILED_DIR || '~/.astra/failed'),
+      INVALID_DIR: this.expandTilde(process.env.INVALID_DIR || '~/.astra/invalid'),
+      LOG_FILE: this.expandTilde(process.env.LOG_FILE || '~/.astra/logs/astra.log'),
+      STATE_FILE: this.expandTilde(process.env.STATE_FILE || '~/.astra/state.json'),
       VOICE_MEMO_JOB_ENABLED: process.env.VOICE_MEMO_JOB_ENABLED || 'true',
       VOICE_MEMO_JOB_INTERVAL_MINUTES: process.env.VOICE_MEMO_JOB_INTERVAL_MINUTES || '5',
       JOURNAL_PROCESSING_JOB_ENABLED: process.env.JOURNAL_PROCESSING_JOB_ENABLED || 'false',

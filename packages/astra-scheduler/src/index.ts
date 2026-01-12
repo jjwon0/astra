@@ -15,7 +15,7 @@ async function main(): Promise<void> {
 
     const env = config.getEnv();
 
-    const state = new StateService();
+    const state = new StateService(env.STATE_FILE);
     const logger = new Logger(env.LOG_FILE);
 
     const scheduler = new JobScheduler(config, state, logger);

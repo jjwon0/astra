@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "bun run --filter astra-scheduler dev",
     "dev:webapp": "bun run --filter astra-webapp dev",
+    "dev:bot": "bun run --filter astra-bot dev",
     "test": "bun run --filter '*' test",
     "test:watch": "bun run --filter astra-scheduler test:watch",
     "test:coverage": "bun run --filter astra-scheduler test:coverage",

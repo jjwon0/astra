@@ -1,59 +1,42 @@
 # Job System
 
-The job scheduler manages multiple independent jobs that run on configurable intervals.
+Jobs are standalone scripts that run once and exit. They are invoked directly via npm scripts or scheduled externally (e.g., cron, launchd).
 
-## Job Interface
+## Running Jobs
 
-```typescript
-interface Job {
-  name: string; // Unique job identifier
-  intervalMinutes: number; // Run interval in minutes
-  enabled: boolean; // Enable/disable job
+```bash
+# Process voice memos
+bun run voice-memo
 
-  execute(config: Config, state: JobState, logger: Logger): Promise<void>;
-}
+# Process journal entries
+bun run journal
 ```
-
-## Job Scheduler
-
-The scheduler registers jobs and runs them on their configured intervals.
-
-```typescript
-class JobScheduler {
-  register(job: Job): void; // Add a job
-  start(): void; // Start all enabled jobs
-  stop(): void; // Stop all jobs (graceful shutdown)
-}
-```
-
-### Scheduling Behavior
-
-- Each registered job runs every `intervalMinutes`
-- Jobs run independently (no blocking between jobs)
-- Job failures are logged but don't stop other jobs
-- Disabled jobs are skipped
-- Jobs are also executed immediately on startup
 
 ## Current Jobs
 
 ### VoiceMemoJob
 
-Processes voice memos into Notion TODOs and notes.
+Processes voice memos into Notion TODOs, notes, and journal entries.
 
 ```bash
-# Configuration
-VOICE_MEMO_JOB_ENABLED=true
-VOICE_MEMO_JOB_INTERVAL_MINUTES=5
-VOICE_MEMOS_DIR=~/Library/Mobile Documents/.../Voice Memos/
+bun run voice-memo
 ```
-
-**Interval:** 5 minutes
 
 **Pipeline:** FileWatcher → Transcription → Organization → NotionSync → Archive
 
+### JournalProcessingJob
+
+Processes aggregated journal entries with AI summarization.
+
+```bash
+bun run journal
+```
+
+**Status:** Stubbed - implementation pending.
+
 ## Per-Job State
 
-Each job has isolated state in `state.json`:
+Each job has isolated state in `~/.astra/state.json`:
 
 ```json
 {
@@ -62,7 +45,7 @@ Each job has isolated state in `state.json`:
       "voice_memo_001.m4a": "completed",
       "failed": ["voice_memo_003.m4a"]
     },
-    "otherJob": {
+    "journalProcessing": {
       "lastRun": "2025-01-05T09:00:00Z"
     }
   }
@@ -77,51 +60,24 @@ const jobState = state.getJobState('jobName');
 state.saveJobState('jobName', jobState);
 ```
 
-## Error Handling
-
-- Each job runs in a try/catch block
-- Job failures are logged but scheduler continues
-- Other jobs are unaffected by a failing job
-
-```typescript
-try {
-  await job.execute(config, jobState, logger);
-} catch (error) {
-  logger.error(`Job ${job.name} failed: ${error.message}`);
-  // Don't rethrow - let other jobs continue
-}
-```
-
-## Graceful Shutdown
-
-On SIGINT/SIGTERM:
-
-1. `scheduler.stop()` is called
-2. All interval timers are cleared
-3. Application exits cleanly
-
 ## Adding a New Job
 
 ### 1. Create the Job Class
 
 ```typescript
 // src/jobs/MyJob.ts
-import type { Job } from '../scheduler/Job';
-import type { Config } from '../services/config';
-import type { StateService } from '../utils/state';
-import type { Logger } from '../utils/logger';
+import { ConfigService } from '../services/config';
+import { StateService } from '../utils/state';
+import { Logger } from '../utils/logger';
 
-export class MyJob implements Job {
+export class MyJob {
   name = 'myJob';
-  intervalMinutes: number;
-  enabled: boolean;
 
-  constructor(config: Config) {
-    this.intervalMinutes = parseInt(config.MY_JOB_INTERVAL_MINUTES) || 60;
-    this.enabled = config.MY_JOB_ENABLED === 'true';
+  constructor(config: ConfigService) {
+    // Initialize with config
   }
 
-  async execute(config: Config, state: StateService, logger: Logger): Promise<void> {
+  async execute(config: ConfigService, state: StateService, logger: Logger): Promise<void> {
     logger.info('MyJob starting');
 
     // Get job-specific state
@@ -138,23 +94,38 @@ export class MyJob implements Job {
 }
 ```
 
-### 2. Add Environment Variables
-
-```bash
-# .env
-MY_JOB_ENABLED=true
-MY_JOB_INTERVAL_MINUTES=60
-# ... job-specific config
-```
-
-### 3. Register in Main Entry Point
+### 2. Create the Entrypoint
 
 ```typescript
-// src/index.ts
-import { MyJob } from './jobs/MyJob';
+// src/jobs/my-job.ts
+import { ConfigService } from '../services/config';
+import { StateService } from '../utils/state';
+import { Logger } from '../utils/logger';
+import { MyJob } from './MyJob';
 
-const myJob = new MyJob(config);
-scheduler.register(myJob);
+async function main() {
+  const config = new ConfigService();
+  await config.initialize();
+
+  const env = config.getEnv();
+  const state = new StateService(env.STATE_FILE);
+  const logger = new Logger(env.LOG_FILE);
+
+  const job = new MyJob(config);
+  await job.execute(config, state, logger);
+}
+
+main().catch(console.error);
+```
+
+### 3. Add Script to package.json
+
+```json
+{
+  "scripts": {
+    "my-job": "bun run packages/astra-scheduler/src/jobs/my-job.ts"
+  }
+}
 ```
 
 ### 4. Add Tests
@@ -173,15 +144,25 @@ describe('MyJob', () => {
 });
 ```
 
+## Scheduling Jobs
+
+Jobs are designed to run once and exit. For recurring execution, use external schedulers like cron:
+
+```bash
+# Run voice memo job every 5 minutes
+*/5 * * * * cd /path/to/astra && bun run voice-memo
+```
+
 ## Directory Structure
 
 ```
 src/
-├── scheduler/
-│   ├── Job.ts           # Job interface
-│   └── JobScheduler.ts  # Scheduler implementation
 ├── jobs/
-│   ├── VoiceMemoJob.ts  # Voice memo job
-│   └── [NewJob.ts]      # Future jobs
-└── index.ts             # Job registration
+│   ├── VoiceMemoJob.ts      # Voice memo job class
+│   ├── VoiceMemoJob.test.ts # Tests
+│   ├── voice-memo.ts        # Entrypoint
+│   ├── JournalProcessingJob.ts
+│   └── journal.ts           # Entrypoint
+└── services/
+    └── config/              # Shared configuration
 ```

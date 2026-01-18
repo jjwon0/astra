@@ -29,10 +29,6 @@ export interface ConfigEnv {
   INVALID_DIR: string;
   LOG_FILE: string;
   STATE_FILE: string;
-  VOICE_MEMO_JOB_ENABLED: string;
-  VOICE_MEMO_JOB_INTERVAL_MINUTES: string;
-  JOURNAL_PROCESSING_JOB_ENABLED?: string;
-  JOURNAL_PROCESSING_JOB_INTERVAL_MINUTES?: string;
   MAX_RETRIES: string;
   GARBAGE_CONFIDENCE_THRESHOLD: string;
 }
@@ -84,11 +80,6 @@ export class ConfigService {
       INVALID_DIR: this.expandTilde(process.env.INVALID_DIR || '~/.astra/invalid'),
       LOG_FILE: this.expandTilde(process.env.LOG_FILE || '~/.astra/logs/astra.log'),
       STATE_FILE: this.expandTilde(process.env.STATE_FILE || '~/.astra/state.json'),
-      VOICE_MEMO_JOB_ENABLED: process.env.VOICE_MEMO_JOB_ENABLED || 'true',
-      VOICE_MEMO_JOB_INTERVAL_MINUTES: process.env.VOICE_MEMO_JOB_INTERVAL_MINUTES || '5',
-      JOURNAL_PROCESSING_JOB_ENABLED: process.env.JOURNAL_PROCESSING_JOB_ENABLED || 'false',
-      JOURNAL_PROCESSING_JOB_INTERVAL_MINUTES:
-        process.env.JOURNAL_PROCESSING_JOB_INTERVAL_MINUTES || '60',
       MAX_RETRIES: process.env.MAX_RETRIES || '3',
       GARBAGE_CONFIDENCE_THRESHOLD: process.env.GARBAGE_CONFIDENCE_THRESHOLD || '30',
     };

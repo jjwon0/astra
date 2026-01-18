@@ -82,13 +82,12 @@ describe('VoiceMemoJob Integration', () => {
 
     mockConfig = {
       getEnv: vi.fn().mockReturnValue({
-        VOICE_MEMO_JOB_INTERVAL_MINUTES: '5',
-        VOICE_MEMO_JOB_ENABLED: 'true',
         VOICE_MEMOS_DIR: '/voice_memos',
         GEMINI_API_KEY: 'test-gemini-key',
         NOTION_API_KEY: 'test-notion-key',
         ARCHIVE_DIR: '/archive',
         FAILED_DIR: '/failed',
+        INVALID_DIR: '/invalid',
         MAX_RETRIES: '3',
       }),
       getSchema: vi.fn().mockReturnValue({

@@ -51,13 +51,11 @@ describe('ConfigService', () => {
     });
 
     it('should use default values when not provided', () => {
-      delete process.env.VOICE_MEMO_JOB_INTERVAL_MINUTES;
       delete process.env.MAX_RETRIES;
 
       const service = new ConfigService();
       const env = service.getEnv();
 
-      expect(env.VOICE_MEMO_JOB_INTERVAL_MINUTES).toBe('5');
       expect(env.MAX_RETRIES).toBe('3');
     });
 

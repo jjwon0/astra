@@ -1,4 +1,3 @@
-import { Job } from '../scheduler/Job';
 import { ConfigService } from '../services/config';
 import { StateService } from '../utils/state';
 import { Logger } from '../utils/logger';
@@ -6,26 +5,23 @@ import { Logger } from '../utils/logger';
 /**
  * JournalProcessingJob - Processes aggregated journal entries with AI summarization.
  *
- * This job runs less frequently than VoiceMemoJob and performs:
+ * This job performs:
  * - AI summarization of daily journal entries
  * - Mood/theme extraction and metadata tagging
  * - Marks journal pages as processed
  *
  * Currently stubbed - implementation pending.
  */
-export class JournalProcessingJob implements Job {
+export class JournalProcessingJob {
   name = 'journalProcessing';
-  intervalMinutes: number;
-  enabled: boolean;
 
-  constructor(config: ConfigService) {
-    const env = config.getEnv();
-    // Run less frequently than voice memo job (e.g., hourly)
-    this.intervalMinutes = parseInt(env.JOURNAL_PROCESSING_JOB_INTERVAL_MINUTES || '60');
-    this.enabled = env.JOURNAL_PROCESSING_JOB_ENABLED === 'true';
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  constructor(_config: ConfigService) {
+    // Config available for future implementation
   }
 
-  async execute(config: ConfigService, state: StateService, logger: Logger): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async execute(_config: ConfigService, _state: StateService, logger: Logger): Promise<void> {
     logger.info('JournalProcessingJob: Not yet implemented');
 
     // TODO: Query journal pages where processed = false

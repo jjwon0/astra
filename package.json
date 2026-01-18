@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
-    "dev": "bun run --filter astra-scheduler dev",
+    "voice-memo": "bun run packages/astra-scheduler/src/jobs/voice-memo.ts",
+    "journal": "bun run packages/astra-scheduler/src/jobs/journal.ts",
     "dev:webapp": "bun run --filter astra-webapp dev",
     "dev:bot": "bun run --filter astra-bot dev",
     "test": "bun run --filter '*' test",

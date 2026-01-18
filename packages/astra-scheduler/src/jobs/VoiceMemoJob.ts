@@ -1,5 +1,4 @@
 import { stat } from 'fs/promises';
-import { Job } from '../scheduler/Job';
 import { ConfigService } from '../services/config';
 import { StateService } from '../utils/state';
 import { Logger } from '../utils/logger';
@@ -12,10 +11,8 @@ import { NotionSyncService } from '../services/core/notionSync';
 import { JournalService } from '../services/core/journal';
 import { JournalNotionService } from '../services/core/journalNotionSync';
 
-export class VoiceMemoJob implements Job {
+export class VoiceMemoJob {
   name = 'voiceMemo';
-  intervalMinutes: number;
-  enabled: boolean;
   private fileWatcher: FileWatcher;
   private transcriptionService: TranscriptionService;
   private organizationService: OrganizationService;
@@ -27,9 +24,6 @@ export class VoiceMemoJob implements Job {
 
   constructor(config: ConfigService) {
     const env = config.getEnv();
-    this.intervalMinutes = parseInt(env.VOICE_MEMO_JOB_INTERVAL_MINUTES) || 5;
-    this.enabled = env.VOICE_MEMO_JOB_ENABLED === 'true';
-
     const schema = config.getSchema();
     const maxRetries = parseInt(env.MAX_RETRIES);
 

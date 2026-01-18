@@ -7,13 +7,13 @@ This is a Bun monorepo with two packages:
 ```
 astra/
 ├── packages/
-│   ├── astra-scheduler/     # Background job scheduler
-│   │   ├── src/             # Scheduler source code
+│   ├── astra-scheduler/     # Standalone job scripts
+│   │   ├── src/             # Source code
 │   │   └── tests/           # Integration tests
 │   └── astra-webapp/        # Val Town frontend
 │       └── vals/            # Val Town HTTP handlers
 ├── docs/                    # Project documentation
-├── scripts/                 # Daemon scripts
+├── scripts/                 # Bot daemon scripts
 └── package.json             # Workspace root
 ```
 
@@ -24,8 +24,11 @@ astra/
 This project uses **Bun** as the runtime with Bun workspaces.
 
 ```bash
-# Run scheduler
-bun run dev
+# Run voice memo job
+bun run voice-memo
+
+# Run journal processing job
+bun run journal
 
 # Run webapp
 bun run dev:webapp
@@ -44,16 +47,15 @@ bun run format:check
 
 ### astra-scheduler
 
-Background job scheduler for processing voice memos and syncing to Notion.
+Standalone job scripts for processing voice memos and syncing to Notion.
 
 ```
 packages/astra-scheduler/src/
-├── index.ts              # Main entry point
-├── scheduler/            # Job scheduler
-│   ├── Job.ts            # Job interface
-│   └── JobScheduler.ts   # Scheduler implementation
-├── jobs/                 # Job implementations
-│   └── VoiceMemoJob.ts   # Voice memo processing job
+├── jobs/                 # Job implementations and entrypoints
+│   ├── VoiceMemoJob.ts   # Voice memo processing job
+│   ├── voice-memo.ts     # Entrypoint for voice memo job
+│   ├── JournalProcessingJob.ts
+│   └── journal.ts        # Entrypoint for journal job
 ├── services/
 │   ├── config/           # Environment and Notion schema loading
 │   └── core/             # Pipeline services (transcription, organization, notionSync)
@@ -110,29 +112,57 @@ See [docs/webapp.md](docs/webapp.md) for Val Town conventions and best practices
 
 ## Adding a New Job
 
-1. Create a new file in `packages/astra-scheduler/src/jobs/` implementing the `Job` interface:
+1. Create the job class in `packages/astra-scheduler/src/jobs/`:
 
 ```typescript
-import type { Job } from '../scheduler/Job';
+// MyJob.ts
+import { ConfigService } from '../services/config';
+import { StateService } from '../utils/state';
+import { Logger } from '../utils/logger';
 
-export class MyJob implements Job {
+export class MyJob {
   name = 'myJob';
-  intervalMinutes = 10;
-  enabled = true;
 
-  async execute(config, state, logger) {
+  constructor(config: ConfigService) {}
+
+  async execute(config: ConfigService, state: StateService, logger: Logger) {
     // Job logic here
   }
 }
 ```
 
-2. Register the job in `packages/astra-scheduler/src/index.ts`:
+2. Create an entrypoint in the same directory:
 
 ```typescript
-import { MyJob } from './jobs/MyJob';
+// my-job.ts
+import { ConfigService } from '../services/config';
+import { StateService } from '../utils/state';
+import { Logger } from '../utils/logger';
+import { MyJob } from './MyJob';
 
-const myJob = new MyJob(config);
-scheduler.register(myJob);
+async function main() {
+  const config = new ConfigService();
+  await config.initialize();
+
+  const env = config.getEnv();
+  const state = new StateService(env.STATE_FILE);
+  const logger = new Logger(env.LOG_FILE);
+
+  const job = new MyJob(config);
+  await job.execute(config, state, logger);
+}
+
+main().catch(console.error);
+```
+
+3. Add a script to `package.json`:
+
+```json
+{
+  "scripts": {
+    "my-job": "bun run packages/astra-scheduler/src/jobs/my-job.ts"
+  }
+}
 ```
 
 See [docs/jobs.md](docs/jobs.md) for detailed documentation.
@@ -147,15 +177,8 @@ Copy `.env.example` to `.env` and fill in:
 
 The config service auto-creates Notion databases on first run if they don't exist.
 
-## Running as a Daemon
+## Logs
 
 ```bash
-# Install as macOS launchd service
-./scripts/install-daemon.sh
-
-# Uninstall
-./scripts/uninstall-daemon.sh
-
-# View logs
 tail -f ~/.astra/logs/astra.log
 ```

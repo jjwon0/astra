@@ -244,4 +244,105 @@ describe('TranscriptionService', () => {
     expect(result.confidence).toBe(15);
     expect(result.garbageReason).toBe('background noise only');
   });
+
+  it('should not retry on 429 rate limit error', async () => {
+    const mockResponse = {
+      ok: false,
+      status: 429,
+      text: async () => JSON.stringify({
+        error: {
+          code: 429,
+          message: 'You exceeded your current quota'
+        }
+      }),
+    };
+
+    (global.fetch as any).mockResolvedValue(mockResponse);
+
+    const { readFileSync } = await import('fs');
+    (readFileSync as any).mockReturnValue(Buffer.from('audio data'));
+
+    const result = await transcriptionService.transcribe('/path/to/audio.m4a', logger);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('API error: 429');
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Rate limit exceeded (429)')
+    );
+    // Should not call warn since it's a rate limit error
+    expect(logger.warn).toHaveBeenCalledTimes(0);
+  });
+
+  it('should not retry on permanent client errors (401, 403)', async () => {
+    const mockResponse = {
+      ok: false,
+      status: 401,
+      text: async () => 'Unauthorized',
+    };
+
+    (global.fetch as any).mockResolvedValue(mockResponse);
+
+    const { readFileSync } = await import('fs');
+    (readFileSync as any).mockReturnValue(Buffer.from('audio data'));
+
+    const result = await transcriptionService.transcribe('/path/to/audio.m4a', logger);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('API error: 401');
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('Permanent client error (401)')
+    );
+    // Should not call warn since it's a permanent client error
+    expect(logger.warn).toHaveBeenCalledTimes(0);
+  });
+
+  it('should retry on temporary server errors (5xx)', async () => {
+    let attemptCount = 0;
+
+    (global.fetch as any).mockImplementation(async () => {
+      attemptCount++;
+      if (attemptCount < 3) {
+        return {
+          ok: false,
+          status: 500,
+          text: async () => 'Internal Server Error',
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      transcription: 'Success after retry',
+                      confidence: 90,
+                      isGarbage: false,
+                      garbageReason: null,
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+    });
+
+    // Mock sleep to be instant for tests
+    vi.spyOn(transcriptionService as any, 'sleep').mockResolvedValue(undefined);
+
+    const { readFileSync } = await import('fs');
+    (readFileSync as any).mockReturnValue(Buffer.from('audio data'));
+
+    const result = await transcriptionService.transcribe('/path/to/audio.m4a', logger);
+
+    expect(result.success).toBe(true);
+    expect(result.text).toBe('Success after retry');
+    expect(attemptCount).toBe(3);
+    // Should retry twice (failures) then succeed
+    expect(logger.warn).toHaveBeenCalledTimes(2);
+  }, 10000);
 });

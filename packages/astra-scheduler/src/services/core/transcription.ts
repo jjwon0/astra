@@ -15,6 +15,23 @@ export class TranscriptionService {
   private apiKey: string;
   private maxRetries: number = 3;
 
+  // HTTP status codes that should NOT be retried
+  private readonly nonRetryableStatusCodes = new Set([
+    400, // Bad Request
+    401, // Unauthorized
+    403, // Forbidden
+    404, // Not Found
+    408, // Request Timeout
+    410, // Gone
+    429, // Too Many Requests (rate limited)
+    451, // Unavailable For Legal Reasons
+  ]);
+
+  // HTTP status codes that are permanent client errors
+  private readonly permanentClientErrors = new Set([
+    400, 401, 403, 404, 410, 451,
+  ]);
+
   constructor(apiKey: string, maxRetries: number = 3) {
     this.apiKey = apiKey;
     this.maxRetries = maxRetries;
@@ -84,8 +101,24 @@ Return ONLY the JSON, no markdown or explanation.`,
 
         if (!response.ok) {
           const errorText = await response.text();
-          lastError = `API error: ${response.status} - ${errorText}`;
-          logger.warn(`Transcription attempt ${attempt + 1} failed: ${lastError}`);
+          const statusCode = response.status;
+          lastError = `API error: ${statusCode} - ${errorText}`;
+          
+          // Check if this is a non-retryable error
+          if (this.nonRetryableStatusCodes.has(statusCode)) {
+            if (statusCode === 429) {
+              logger.error(`Rate limit exceeded (${statusCode}). Will not retry automatically - please retry manually later.`);
+            } else if (this.permanentClientErrors.has(statusCode)) {
+              logger.error(`Permanent client error (${statusCode}). Will not retry: ${lastError}`);
+            } else {
+              logger.warn(`Non-retryable error (${statusCode}): ${lastError}`);
+            }
+            
+            // Exit retry loop immediately for non-retryable errors
+            return { text: '', success: false, error: lastError };
+          }
+
+          logger.warn(`Retriable error (${statusCode}). Attempt ${attempt + 1}/${this.maxRetries} failed: ${lastError}`);
 
           if (attempt < this.maxRetries - 1) {
             const delay = backoffDelays[attempt] || 30000;

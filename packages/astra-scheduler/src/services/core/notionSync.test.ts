@@ -63,7 +63,7 @@ describe('NotionSyncService', () => {
         title: { title: [{ text: { content: 'Buy milk' } }] },
         description: { rich_text: [{ text: { content: 'Get 2% milk' } }] },
         priority: { select: { name: 'asap' } },
-        status: { select: { name: 'not started' } },
+        done: { checkbox: false },
         created_date: { date: { start: expect.any(String) } },
         source: { rich_text: [{ text: { content: 'voice_memo.m4a' } }] },
       },

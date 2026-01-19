@@ -33,6 +33,7 @@ describe('ConfigService', () => {
       databases: {
         create: vi.fn(),
         retrieve: vi.fn(),
+        update: vi.fn().mockResolvedValue({}),
       },
     };
 
@@ -151,7 +152,8 @@ describe('ConfigService', () => {
       await service.initialize();
 
       expect(mockNotion.databases.create).toHaveBeenCalledTimes(3);
-      expect(mockNotion.databases.retrieve).toHaveBeenCalledTimes(2);
+      // 1 call from migration (checking for 'done' property) + 2 calls from fetchSchema
+      expect(mockNotion.databases.retrieve).toHaveBeenCalledTimes(3);
 
       const schema = service.getSchema();
       expect(schema.todoDatabaseId).toBe('new_todo_db_id');

@@ -15,15 +15,17 @@ fi
 
 echo "✅ Bun found: $(bun --version)"
 
-# Navigate to watcher directory
-WATCHER_DIR="$(dirname "$0")/packages/astra-watcher"
+# Navigate to watcher directory (relative to repo root, not script location)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+WATCHER_DIR="$REPO_ROOT/packages/astra-watcher"
 cd "$WATCHER_DIR"
 
 echo "📁 Building watcher..."
 echo ""
 
-# Build the watcher
-if bun build --target=bun --outfile=dist/astra-watcher src/index.ts; then
+# Build the watcher (use --compile for standalone executable)
+if bun build --compile --outfile=dist/astra-watcher src/index.ts; then
     echo "✅ Build successful!"
 else
     echo "❌ Build failed"

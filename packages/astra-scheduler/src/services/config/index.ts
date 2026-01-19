@@ -87,7 +87,32 @@ export class ConfigService {
 
   async initialize(): Promise<void> {
     await this.setupNotionDatabases();
+    await this.migrateTodoDatabase();
     await this.fetchSchema();
+  }
+
+  private async migrateTodoDatabase(): Promise<void> {
+    const todoDbId = this.env.NOTION_TODO_DATABASE_ID;
+    if (!todoDbId) return;
+
+    try {
+      const db = await this.notion.databases.retrieve({ database_id: todoDbId });
+      const properties = (db as any).properties;
+
+      // Add 'done' checkbox if missing
+      if (!properties.done) {
+        console.log('Migrating TODO database: adding "done" checkbox property...');
+        await this.notion.databases.update({
+          database_id: todoDbId,
+          properties: {
+            done: { checkbox: {} },
+          },
+        });
+        console.log('Migration complete: added "done" checkbox property');
+      }
+    } catch (error: any) {
+      console.warn(`Could not migrate TODO database: ${error.message}`);
+    }
   }
 
   private async setupNotionDatabases(): Promise<void> {
@@ -146,15 +171,7 @@ export class ConfigService {
             ],
           },
         },
-        status: {
-          select: {
-            options: [
-              { name: 'not started', color: 'gray' },
-              { name: 'in progress', color: 'blue' },
-              { name: 'done', color: 'green' },
-            ],
-          },
-        },
+        done: { checkbox: {} },
         created_date: { date: {} },
         source: { rich_text: {} },
       },

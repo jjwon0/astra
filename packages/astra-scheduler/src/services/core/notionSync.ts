@@ -112,8 +112,8 @@ export class NotionSyncService {
             priority: {
               select: { name: item.priority },
             },
-            status: {
-              select: { name: 'not started' },
+            done: {
+              checkbox: false,
             },
             created_date: {
               date: { start: this.formatDateISO(recordedAt) },

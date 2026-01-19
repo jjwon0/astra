@@ -72,14 +72,14 @@ On first run, if database IDs are empty or invalid, the config service automatic
 
 ### TODO Database Properties
 
-| Property     | Type      | Options                                              |
-| ------------ | --------- | ---------------------------------------------------- |
-| title        | Title     | -                                                    |
-| description  | Rich text | -                                                    |
-| priority     | Select    | asap (red), soon (yellow), eventually (gray)         |
-| status       | Select    | not started (gray), in progress (blue), done (green) |
-| created_date | Date      | -                                                    |
-| source       | Rich text | -                                                    |
+| Property     | Type      | Options                                      |
+| ------------ | --------- | -------------------------------------------- |
+| title        | Title     | -                                            |
+| description  | Rich text | -                                            |
+| priority     | Select    | asap (red), soon (yellow), eventually (gray) |
+| done         | Checkbox  | -                                            |
+| created_date | Date      | -                                            |
+| source       | Rich text | -                                            |
 
 ### Notes Database Properties
 

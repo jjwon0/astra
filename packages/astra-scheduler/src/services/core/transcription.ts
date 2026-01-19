@@ -9,6 +9,7 @@ export interface TranscriptionResult {
   confidence?: number;
   isGarbage?: boolean;
   garbageReason?: string;
+  intent?: 'TODO' | 'NOTE' | 'JOURNAL';
 }
 
 export class TranscriptionService {
@@ -60,28 +61,58 @@ export class TranscriptionService {
                 {
                   parts: [
                     {
-                      text: `Analyze this audio recording and provide a transcription with quality assessment.
+                      text: `Analyze this audio recording and provide a transcription with quality assessment and intent detection.
 
 Return ONLY valid JSON in this exact format:
 {
-  "transcription": "The transcribed text exactly as spoken, or empty string if no speech",
+  "transcription": "Cleaned transcription with filler words removed",
+  "intent": "TODO" | "NOTE" | "JOURNAL",
   "confidence": <number 0-100>,
   "isGarbage": <boolean>,
   "garbageReason": "<string or null>"
 }
 
-Quality assessment rules:
+TRANSCRIPTION CLEANING:
+- Remove filler words: um, uh, like, you know, so, basically, actually, I mean, kind of, sort of
+- Remove false starts and repeated words
+- Keep the meaningful content intact
+
+INTENT DETECTION:
+Determine intent using these rules in order:
+1. If the content makes the intent CRYSTAL CLEAR, use that intent
+2. If user states an explicit prefix ("todo", "note", "journal"), use that intent
+3. Otherwise, default to JOURNAL
+
+Intent types:
+- "TODO": A clear task or action item to be done
+- "NOTE": A clear piece of information to remember or reference later
+- "JOURNAL": Personal reflection, thoughts, experiences, or anything ambiguous
+
+CRITICAL: Be conservative. Only use TODO or NOTE if you are 100% certain. When in doubt, default to JOURNAL.
+
+Examples:
+- "Buy milk tomorrow" → intent: "TODO" (crystal clear task)
+- "Um, todo, buy milk" → intent: "TODO", transcription: "buy milk"
+- "Call the doctor on Monday" → intent: "TODO" (crystal clear task)
+- "Note, the API key is abc123" → intent: "NOTE", transcription: "the API key is abc123"
+- "The restaurant is at 123 Main St" → intent: "NOTE" (crystal clear reference info)
+- "Had a great day at the park" → intent: "JOURNAL" (personal experience)
+- "The meeting went well and I should follow up with John" → intent: "JOURNAL" (ambiguous - could be reflection or task, default to journal)
+- "I'm thinking about switching jobs" → intent: "JOURNAL" (personal reflection)
+
+QUALITY ASSESSMENT:
 - confidence 80-100: Clear speech with understandable content
 - confidence 50-79: Partially audible speech, some unclear portions
 - confidence 20-49: Mostly noise with possible fragments of speech
 - confidence 0-19: No discernible speech (pure noise, silence, button sounds)
 
-Mark isGarbage=true if ANY of these apply:
-- Less than 2 words of actual speech
+GARBAGE DETECTION - Mark isGarbage=true if ANY apply:
+- Less than 2 words of actual speech AFTER removing filler words
 - Only background noise, static, or ambient sounds
 - Recording is mostly silence
 - Speech is completely unintelligible
 - Only sounds like button clicks, breathing, or non-verbal sounds
+- Recording contains ONLY filler words with no meaningful content
 
 If isGarbage=true, set garbageReason to explain why.
 Return ONLY the JSON, no markdown or explanation.`,
@@ -146,7 +177,7 @@ Return ONLY the JSON, no markdown or explanation.`,
 
         const status = parsed.isGarbage ? 'flagged as garbage' : 'successful';
         logger.info(
-          `Transcription ${status} (confidence: ${parsed.confidence}%):\n${parsed.transcription}`
+          `Transcription ${status} (confidence: ${parsed.confidence}%, intent: ${parsed.intent}):\n${parsed.transcription}`
         );
 
         return {
@@ -155,6 +186,7 @@ Return ONLY the JSON, no markdown or explanation.`,
           confidence: parsed.confidence,
           isGarbage: parsed.isGarbage,
           garbageReason: parsed.garbageReason || undefined,
+          intent: parsed.intent,
         };
       } catch (error: any) {
         lastError = error.message || String(error);
@@ -188,6 +220,7 @@ Return ONLY the JSON, no markdown or explanation.`,
     confidence: number;
     isGarbage: boolean;
     garbageReason: string | null;
+    intent: 'TODO' | 'NOTE' | 'JOURNAL';
   } | null {
     try {
       const cleaned = text
@@ -202,6 +235,13 @@ Return ONLY the JSON, no markdown or explanation.`,
         typeof parsed.isGarbage !== 'boolean'
       ) {
         return null;
+      }
+
+      // Validate intent field
+      const validIntents = ['TODO', 'NOTE', 'JOURNAL'];
+      if (!validIntents.includes(parsed.intent)) {
+        // Default to JOURNAL if intent is missing or invalid
+        parsed.intent = 'JOURNAL';
       }
 
       return parsed;

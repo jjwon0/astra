@@ -112,14 +112,15 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo1.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'TODO: Buy groceries tomorrow morning',
+      text: 'Buy groceries tomorrow morning',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
       items: [
         {
           type: 'TODO',
-          content: 'TODO: Buy groceries tomorrow morning',
+          content: 'Buy groceries tomorrow morning',
           priority: 'medium',
           category: 'personal',
         },
@@ -139,7 +140,7 @@ describe('VoiceMemoJob Integration', () => {
       mockLogger
     );
     expect(mockOrganizationService.organize).toHaveBeenCalledWith(
-      'TODO: Buy groceries tomorrow morning',
+      'Buy groceries tomorrow morning',
       mockConfig.getSchema(),
       mockLogger
     );
@@ -147,7 +148,7 @@ describe('VoiceMemoJob Integration', () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: 'TODO',
-          content: 'TODO: Buy groceries tomorrow morning',
+          content: 'Buy groceries tomorrow morning',
         }),
       ]),
       'memo1.m4a',
@@ -171,11 +172,13 @@ describe('VoiceMemoJob Integration', () => {
     mockTranscriptionService.transcribe
       .mockResolvedValueOnce({
         success: true,
-        text: 'TODO: First task',
+        text: 'First task',
+        intent: 'TODO',
       })
       .mockResolvedValueOnce({
         success: true,
-        text: 'NOTE: Second note',
+        text: 'Second note',
+        intent: 'NOTE',
       });
     mockOrganizationService.organize
       .mockResolvedValueOnce({
@@ -236,7 +239,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/fail.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'TODO: Some task',
+      text: 'Some task',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: false,
@@ -263,7 +267,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/fail.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'TODO: Some task',
+      text: 'Some task',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -295,7 +300,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/partial.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'TODO: Multiple items',
+      text: 'Multiple items',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -327,7 +333,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/empty.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'TODO: Some task',
+      text: 'Some task',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -368,7 +375,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/fail.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'TODO: Some task',
+      text: 'Some task',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -425,7 +433,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/journal.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Journal, today I had a great day working on the new feature.',
+      text: 'today I had a great day working on the new feature.',
+      intent: 'JOURNAL',
     });
     mockJournalService.format.mockResolvedValue({
       success: true,
@@ -463,7 +472,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/journal.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Journal, some content here',
+      text: 'some content here',
+      intent: 'JOURNAL',
     });
     mockJournalService.format.mockResolvedValue({
       success: false,
@@ -490,7 +500,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/journal.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'Journal, some content',
+      text: 'some content',
+      intent: 'JOURNAL',
     });
     mockJournalService.format.mockResolvedValue({
       success: true,
@@ -522,7 +533,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'TODO: Buy groceries and check my journal later',
+      text: 'Buy groceries and check my journal later',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -551,6 +563,7 @@ describe('VoiceMemoJob Integration', () => {
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
       text: 'JOURNAL: Today was productive.',
+      intent: 'JOURNAL',
     });
     mockJournalService.format.mockResolvedValue({
       success: true,
@@ -579,6 +592,7 @@ describe('VoiceMemoJob Integration', () => {
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
       text: 'Saw a really cool temple today in Chaozhou',
+      intent: 'JOURNAL',
     });
     mockJournalService.format.mockResolvedValue({
       success: true,
@@ -608,7 +622,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'to do, buy milk tomorrow',
+      text: 'buy milk tomorrow',
+      intent: 'TODO',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,
@@ -638,7 +653,8 @@ describe('VoiceMemoJob Integration', () => {
     mockFileWatcher.watch.mockResolvedValue(['/voice_memos/memo.m4a']);
     mockTranscriptionService.transcribe.mockResolvedValue({
       success: true,
-      text: 'NOTE: interesting architecture pattern I noticed',
+      text: 'interesting architecture pattern I noticed',
+      intent: 'NOTE',
     });
     mockOrganizationService.organize.mockResolvedValue({
       success: true,

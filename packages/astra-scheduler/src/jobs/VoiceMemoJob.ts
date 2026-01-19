@@ -97,8 +97,8 @@ export class VoiceMemoJob {
       // Parse recording time from filename, fallback to file creation time
       const recordedAt = parseVoiceMemoTimestamp(filename) ?? (await stat(filePath)).birthtime;
 
-      // Route based on prefix: TODO/NOTE → organization, everything else → journal
-      const intent = this.detectIntent(transcriptionResult.text);
+      // Route based on intent detected during transcription
+      const intent = transcriptionResult.intent ?? 'JOURNAL';
 
       if (intent === 'JOURNAL') {
         await this.processJournalEntry(filePath, transcriptionResult.text, recordedAt, logger);
@@ -121,23 +121,6 @@ export class VoiceMemoJob {
         );
       }
     }
-  }
-
-  private detectIntent(transcript: string): 'TODO' | 'NOTE' | 'JOURNAL' {
-    const text = transcript.trim();
-
-    // Check for TODO prefix: "todo:", "to do:", "to-do:", "todo,"
-    if (/^to[\s-]?do[,:.\s]/i.test(text)) {
-      return 'TODO';
-    }
-
-    // Check for NOTE prefix: "note:", "note,"
-    if (/^note[,:.\s]/i.test(text)) {
-      return 'NOTE';
-    }
-
-    // Everything else → journal (including explicit "journal" prefix)
-    return 'JOURNAL';
   }
 
   private stripPrefixKeyword(transcript: string): string {
